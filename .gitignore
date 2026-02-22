@@ -1,5 +1,15 @@
 # Environment
 .env
+.env.local
+api/.env
+
+# API data (runtime storage)
+api/data/
+
+# Frontend build
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
 
 # Temp files
 uploads/

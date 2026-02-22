@@ -1,60 +1,106 @@
 # Plan
 
-## Current Task
-None — ready to pick up next task.
+## Current State (2026-02-22 — Pivoting to PaperFlow)
+**PDFReflow MVP is complete. Project is pivoting to PaperFlow (PDF→web reader).**
+Full plan: `D:/projects/plan.md` | Architecture: `D:/projects/PaperFlow_Architecture.md`
+
+### PDFReflow (legacy, complete)
+Pipeline: **PDF → Datalab Marker API → Pandoc 3.9 → EPUB3**
+UI: Streamlit at `streamlit run app.py` → http://localhost:8501
+Env: `DATALAB_API_KEY` in `.env` (active key saved)
+
+## Active Files (what matters now)
+```
+app.py                   — Streamlit UI (upload → convert → download)
+core/
+  converter.py           — orchestrator: Marker → epub_builder → EPUB
+  marker_client.py       — Datalab API client (upload + poll)
+  epub_builder.py        — Markdown → Pandoc → EPUB3 (build_epub_from_markdown)
+  epub_style.css         — minimal typography CSS for Pandoc
+web/
+  payment.py             — future (not wired up)
+  storage.py             — future (not wired up)
+.env                     — DATALAB_API_KEY (real key)
+```
+
+## Deleted (legacy — no longer in repo)
+```
+core/pandoc_builder.py   — replaced by Pandoc subprocess in epub_builder
+core/layout_analyzer.py  — old OpenRouter vision OCR
+core/pdf_detector.py     — old text/scanned/mixed detector
+core/text_pipeline.py    — old zero-cost text extractor
+core/text_cleaner.py     — utility, never called in pipeline
+core/gongjiyun.py        — old GPU cloud deploy scripts
+core/ai_enhance.py       — old Claude Vision OCR pass
+core/epub.css            — replaced by epub_style.css
+```
 
 ---
 
-## Done (continued)
-- Add `core/pdf_detector.py` — detects text/scanned/mixed via PyMuPDF char count (>50 chars/page = text)
-  - Modified: core/pdf_detector.py (new)
-  - Tested on uploads/ sample PDFs → correctly returns "scanned" (0 chars/page)
-- Add `core/text_pipeline.py` — zero-API-cost text extraction for text-based PDFs
-  - Two-pass: pass 1 detects repeated header/footer text (≥40% pages) + body font size; pass 2 builds Markdown
-  - Heading detection: ≥1.5× body size → `#`, ≥1.2× or bold → `##`
-  - Modified: core/text_pipeline.py (new); uploads/test_text_based.pdf (test fixture)
-  - Tested: 3-page PDF → headers removed, page numbers removed, h1 headings detected, body merged correctly
-- Wire pdf_detector into converter.py
-  - Modified: core/converter.py
-  - text → extract_text_pdf (zero API cost); scanned/mixed → analyze_layout + clean_text (unchanged)
-  - End-to-end test: test_text_based.pdf → outputs/test_text_based.epub (3 093 bytes), no API call
-- Refactor `core/layout_analyzer.py` — switch primary OCR from Claude Vision to PaddleOCR cloud API
-  - Modified: core/layout_analyzer.py
-  - Chunks 5 pages/request as sub-PDFs; 2 s delay between chunks
-  - Retry: up to 5 attempts, backoff 5/10/20/40/80 s
-  - Checkpoint: {pdf}.checkpoint.json, resumes after crash
-  - Claude Vision kept as ai_enhance=True flag (uses ANTHROPIC_API_KEY, deferred import)
-  - openai/OpenRouter dependency removed; uses stdlib urllib.request
-  - Imports and text-PDF end-to-end verified OK
+## PaperFlow — Next Steps (active)
+
+### Step 1: Backend API [x] Done (2026-02-22)
+FastAPI at `D:/projects/pdfreflow/api/` (or new `D:/projects/paperflow/backend/`)
+- POST /api/parse — upload PDF, async background task, return paper_id
+- GET /api/parse/{id} — poll status
+- GET /api/paper/{id} — return full rendered data (title, toc, sections, images, metadata)
+- Reuse `core/marker_client.py` → adapt to httpx async
+- File-based JSON storage (`./data/papers/{paper_id}.json`)
+
+### Step 2: Frontend Reader [x] Done (2026-02-22)
+Next.js 14 (App Router) — Medium-style reading experience
+- Upload page → processing poll → reader page
+- KaTeX math, TOC sidebar, page markers, dark mode
+
+### Step 2.5: Debug & Polish [x] Done (2026-02-22)
+### Step 3: Deploy [ ] Not started
+- Backend → Railway (`uvicorn main:app --workers 1`)
+- Frontend → Vercel
 
 ---
 
-## Done
-- Initial scaffold commit
-- Integrate PaddleOCR into core/layout_analyzer.py — Replaced with Claude Vision
-  - Switched to Claude Vision API via OpenRouter (openai SDK)
-  - Model: anthropic/claude-sonnet-4
-  - Modified: core/layout_analyzer.py
-  - Tested on 11-page Chinese PDF — works, returns Markdown
-- Wire layout_analyzer into converter pipeline
-  - `core/text_cleaner.py` — now cleans `page.markdown` instead of `page.raw_text`; added Chinese line-merge support; duplicate blank line removal
-  - `core/epub_builder.py` — replaced placeholder with `markdown.markdown()` (tables extension); chapter splitting by `# ` headings with fallback to per-page; auto-detect `zh`/`en` language for EPUB metadata
-  - `core/converter.py` — removed `enhance_page` step (redundant with Claude Vision); extracts title from PDF filename; auto-creates `outputs/` directory
-  - Installed `markdown` dependency
-  - Verified end-to-end: 11-page Chinese PDF → 13-chapter EPUB (16 KB), language auto-detected as `zh`
+## PDFReflow — Completed Work
+
+### 2026-02-20 Session — All Done ✓
+
+### Switched epub_builder to Pandoc
+- Replaced ebooklib + custom HTML/CSS (~440 lines) with Pandoc subprocess (~110 lines)
+- `build_epub_from_markdown(markdown, images, output_path, title)` signature unchanged
+- Images saved to same temp dir as `input.md` so Pandoc resolves relative paths
+- Output path resolved to absolute before subprocess (fixes `cwd=tmp` bug)
+- YAML front matter prepended to markdown for title metadata
+
+### _unwrap_lines overhaul
+- **Silver bullet**: purge invisible chars (`\u200b`, `\u200c`, `\u200d`, `\u00ad`) first
+- **Pass 0 — NLP smart_merge**: regex `([a-zA-Z]+) *\n *([a-zA-Z]+)` + pyspellchecker
+  - combined is known word AND a fragment is unknown → join without space ("advanc"+"ing" → "advancing")
+  - both halves are known words OR combined unknown → join with space
+- **Pass 1 — buffer approach**: structural guard (headings, lists, tables pass through unchanged)
+- Installed: `pyspellchecker 0.8.4`
+
+### CSS simplified (epub_style.css)
+- Removed all `word-break`, `hyphens`, `overflow-wrap`, `!important` overrides
+- Word-break issues were caused by WPS reader, not our code
+- Minimal clean typography: `margin: 5%`, `font-family: serif`, `line-height: 1.8`
+
+### XHTML compliance fix (_fix_epub_xhtml)
+- Pandoc 3.9 emits bare `<br>` inside table cells (XHTML-invalid)
+- Pre-pass: replace `<br>` / `<hr>` in raw Marker markdown before Pandoc
+- Post-pass: `_fix_epub_xhtml()` rewrites the EPUB zip after Pandoc, patches all `.xhtml` files
+- Verified: 0 unclosed void tags remaining in output EPUB
 
 ---
 
-- Refine converter.py routing + clean scanned pipeline output
-  - Modified: core/converter.py, core/text_cleaner.py
-  - converter: fixed docstring, added ai_enhance param, routing log line
-  - text_cleaner: added strip_loc_tokens() for <|LOC_*|> PaddleOCR artifacts; added _is_hallucination() (blanks pages where one token >40% of output — catches diagram hallucinations)
-  - Tested: text PDF → 0.1s (free); scanned PDF → 0.3s (checkpoint hit, no API call)
-  - Pages 2,3,10 blanked (hallucination); pages 3,7,11 LOC-stripped
+## PDFReflow — Deferred (not priority)
+- Error handling — friendly UI error if Marker API fails
+- Progress feedback — show elapsed time
+- Payment / storage — `web/payment.py` and `web/storage.py` not wired up
 
-## Next
-- Improve title extraction (current hash-based filenames produce poor titles; consider extracting from first `# ` heading in content)
-- Add CSS styling to EPUB (basic typography, margins, fonts)
-- Error handling & retries for OpenRouter API calls
-- Progress reporting / logging during conversion
-- Web UI integration (Gradio/Streamlit front-end)
+## Test Command
+```bash
+cd /d/projects/pdfreflow
+streamlit run app.py
+# open http://localhost:8501
+# upload a PDF, click Convert, download EPUB
+# check outputs/<stem>.md for raw Marker output
+```

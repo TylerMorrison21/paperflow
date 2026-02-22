@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #fafaf8;
+  --text: #1a1a1a;
+  --accent: #c0392b;
+  --muted: #999;
+  --border: #e5e5e5;
+  --font-serif: var(--font-serif), var(--font-serif-sc), Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+}
