@@ -1,20 +1,21 @@
-"""PDFReflow.ai — Streamlit entry point."""
+"""PDFReflow.ai — PDF to EPUB converter."""
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import streamlit as st
 from core.converter import convert_pdf_to_epub
-from web.storage import save_upload, get_output_path
+from web.storage import save_upload
 
 st.set_page_config(page_title="PDFReflow.ai", page_icon="📖")
-
 st.title("PDFReflow.ai")
-st.subheader("Turn scanned PDFs into perfect Kindle EPUBs")
+st.subheader("Convert any PDF to a Kindle-friendly EPUB")
 
-uploaded = st.file_uploader("Upload your scanned PDF", type="pdf")
-col_type = st.radio("Layout", ["Single column", "Two columns"])
+uploaded = st.file_uploader("Upload a PDF", type="pdf")
 
-if uploaded and st.button("Convert — $3"):
+if uploaded and st.button("Convert"):
     pdf_path = save_upload(uploaded)
-    with st.spinner("Converting... (usually 2-5 min)"):
-        epub_path = convert_pdf_to_epub(pdf_path, col_type)
+    with st.spinner("Converting… this usually takes 1–3 minutes"):
+        epub_path = convert_pdf_to_epub(pdf_path)
     with open(epub_path, "rb") as f:
-        st.download_button("Download EPUB", f, file_name="converted.epub")
+        st.download_button("Download EPUB", f, file_name="converted.epub", mime="application/epub+zip")
