@@ -2,12 +2,15 @@ import uuid
 import asyncio
 import tempfile
 import os
+import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from api.services import marker, storage
 from api.services.postprocess import postprocess_markdown
 from api.models import UploadResponse, PaperStatus, PaperData
 from api.errors import error_response, ErrorCode
 from api.middleware.rate_limit import check_rate_limit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -33,6 +36,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
         )
 
     paper_id = str(uuid.uuid4())
+    logger.info(f"New upload: paper_id={paper_id}, filename={file.filename}, size={len(pdf_bytes)} bytes")
     storage.save_task(paper_id, {"paper_id": paper_id, "status": "processing"})
     asyncio.create_task(_process(paper_id, pdf_bytes))
     return {"paper_id": paper_id, "status": "processing"}
@@ -60,10 +64,15 @@ async def get_paper(paper_id: str):
 
 async def _process(paper_id: str, pdf_bytes: bytes):
     try:
+        logger.info(f"[{paper_id}] Starting processing...")
         result = await marker.parse_pdf(pdf_bytes)
-        data   = postprocess_markdown(result["markdown"], result["images"], result["metadata"])
+        logger.info(f"[{paper_id}] Marker API complete, starting postprocessing...")
+        data = postprocess_markdown(result["markdown"], result["images"], result["metadata"])
+        logger.info(f"[{paper_id}] Postprocessing complete, saving...")
         storage.update_task(paper_id, {"status": "complete", "data": data})
+        logger.info(f"[{paper_id}] Processing complete!")
     except Exception as e:
+        logger.error(f"[{paper_id}] Processing failed: {e}", exc_info=True)
         storage.update_task(paper_id, {
             "status": "error",
             "error": str(e),
