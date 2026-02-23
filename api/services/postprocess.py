@@ -82,6 +82,9 @@ def split_into_sections(md: str) -> list:
     return sections
 
 def postprocess_markdown(raw_md: str, images: dict, metadata: dict) -> dict:
+    if not raw_md or raw_md is None:
+        raise ValueError("Marker API returned empty or None markdown. The PDF may be invalid, corrupted, or unsupported.")
+
     md = fix_latex_delimiters(raw_md)
     page_stats = metadata.get("page_stats", [])
     md = inject_page_markers(md, page_stats)
