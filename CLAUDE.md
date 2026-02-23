@@ -4,10 +4,15 @@
 Help me ship the MVP fast with small, safe steps.
 
 ## Project Summary
-**Pivoting from PDFReflow (PDF→EPUB Streamlit app) to PaperFlow (PDF→web reader).**
+**PaperFlow is LIVE and working end-to-end (2026-02-23).**
 
 PaperFlow converts academic PDFs into beautiful, readable web articles — like Medium for research papers.
 Stack: Next.js 14 (Vercel) + FastAPI (Railway) + Marker API (Datalab).
+
+**Live URLs:**
+- Frontend: https://frontend-9kvi1cyc6-tylermorrison21s-projects.vercel.app
+- Backend: https://pdfreflow-production.up.railway.app
+
 See `D:/projects/CLAUDE.md` and `D:/projects/plan.md` for full architecture and execution plan.
 
 ## Legacy Architecture (PDFReflow — kept for reference)

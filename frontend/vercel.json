@@ -2,11 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install",
-  "env": {
-    "NEXT_PUBLIC_API_URL": {
-      "description": "PaperFlow backend URL (Railway)",
-      "required": true
-    }
-  }
+  "installCommand": "npm install"
 }

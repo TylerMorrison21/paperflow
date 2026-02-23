@@ -53,13 +53,17 @@ Next.js 14 (App Router) — Medium-style reading experience
 - KaTeX math, TOC sidebar, page markers, dark mode
 
 ### Step 2.5: Debug & Polish [x] Done (2026-02-22)
-### Step 3: Deploy [x] Done (2026-02-22)
+### Step 3: Deploy [x] Done (2026-02-23)
 - Backend → Railway (`uvicorn api.main:app --workers 1`) + railway.toml
 - Frontend → Vercel + vercel.json
 - railway login → railway init → railway up → set DATALAB_API_KEY + CORS_ORIGINS
 - vercel login → vercel --prod → set NEXT_PUBLIC_API_URL
+- **Live URLs:**
+  - Frontend: https://frontend-9kvi1cyc6-tylermorrison21s-projects.vercel.app
+  - Backend: https://pdfreflow-production.up.railway.app
 
-### Step 4: Market Validation [~] In progress (2026-02-22)
+### Step 4: Market Validation [~] In progress (2026-02-23)
+- [x] End-to-end test complete — upload → processing → reader page working
 - [ ] Test with 5 PDFs (arXiv ML, survey, CV, Chinese, scanned)
 - [ ] Take before/after screenshots
 - [ ] Post to r/GradSchool, r/MachineLearning, HN Show HN
