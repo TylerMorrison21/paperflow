@@ -24,15 +24,6 @@
 .reader-body pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; border-radius: 4px; margin: 1.25rem 0; }
 .reader-body code { font-size: 0.875em; }
 
-.page-marker {
-  float: right;
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-family: monospace;
-  margin-right: -3rem;
-  clear: right;
-}
-
 .katex-display { overflow-x: auto; padding: 0.5rem 0; margin: 1.5rem 0; }
 
 /* Dark mode */
@@ -44,5 +35,4 @@
 /* Mobile */
 @media (max-width: 768px) {
   .reader-body { padding: 1rem; font-size: 1rem; line-height: 1.75; }
-  .page-marker { float: none; display: block; text-align: right; margin-right: 0; }
 }

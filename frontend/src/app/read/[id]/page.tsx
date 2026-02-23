@@ -6,6 +6,7 @@ import { PaperData } from '@/lib/types'
 import ReaderLayout from '@/components/Reader/ReaderLayout'
 import ProcessingStatus from '@/components/ProcessingStatus'
 import Link from 'next/link'
+import { analytics } from '@/lib/analytics'
 
 export default function ReadPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +18,7 @@ export default function ReadPage() {
     const data = await getPaper(paperId)
     setPaper(data)
     setStatus('complete')
+    analytics.readerView(paperId)
   }
 
   useEffect(() => {
@@ -54,5 +56,5 @@ export default function ReadPage() {
   )
 
   if (!paper) return null
-  return <ReaderLayout paper={paper} />
+  return <ReaderLayout paper={paper} paperId={id} />
 }

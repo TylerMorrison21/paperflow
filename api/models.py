@@ -8,6 +8,7 @@ class PaperStatus(BaseModel):
     paper_id: str
     status: str
     error: str | None = None
+    error_code: str | None = None
 
 class TOCItem(BaseModel):
     id: str

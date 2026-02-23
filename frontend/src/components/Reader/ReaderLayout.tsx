@@ -5,7 +5,7 @@ import TOCSidebar from './TOCSidebar'
 import ArticleBody from './ArticleBody'
 import SettingsBar from './SettingsBar'
 
-export default function ReaderLayout({ paper }: { paper: PaperData }) {
+export default function ReaderLayout({ paper, paperId }: { paper: PaperData, paperId: string }) {
   const [fontSize, setFontSize] = useState(18)
   const [dark, setDark] = useState(false)
   const [activeId, setActiveId] = useState('')
@@ -29,7 +29,7 @@ export default function ReaderLayout({ paper }: { paper: PaperData }) {
 
   return (
     <div style={{ background: dark ? '#1a1a1a' : 'var(--bg)', minHeight: '100vh' }}>
-      <SettingsBar title={paper.title} fontSize={fontSize} setFontSize={setFontSize} dark={dark} setDark={setDark} />
+      <SettingsBar title={paper.title} fontSize={fontSize} setFontSize={setFontSize} dark={dark} setDark={setDark} paperId={paperId} />
 
       <div style={{ display: 'flex' }}>
         {/* Desktop TOC */}
@@ -49,7 +49,7 @@ export default function ReaderLayout({ paper }: { paper: PaperData }) {
           <div style={{ position: 'fixed', inset: 0, zIndex: 30, display: 'flex' }}>
             <div style={{ flex: 1, background: 'rgba(0,0,0,0.4)' }} onClick={() => setDrawerOpen(false)} />
             <div style={{ width: 280, background: dark ? '#111' : '#fff', overflowY: 'auto' }}>
-              <button onClick={() => setDrawerOpen(false)} style={{ float: 'right', padding: '1rem', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setDrawerOpen(false)} style={{ float: 'right', padding: '1rem', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text)' }}>✕</button>
               <TOCSidebar toc={paper.toc} activeId={activeId} />
             </div>
           </div>

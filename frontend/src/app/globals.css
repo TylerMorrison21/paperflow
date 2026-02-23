@@ -9,6 +9,14 @@
   --font-serif: var(--font-serif), var(--font-serif-sc), Georgia, serif;
 }
 
+.dark {
+  --bg: #1a1a1a;
+  --text: #e0e0e0;
+  --accent: #e74c3c;
+  --muted: #888;
+  --border: #333;
+}
+
 * { box-sizing: border-box; }
 
 body {

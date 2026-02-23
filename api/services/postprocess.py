@@ -9,19 +9,8 @@ def fix_latex_delimiters(md: str) -> str:
     return md
 
 def inject_page_markers(md: str, page_stats: list) -> str:
-    if not page_stats:
-        return md
-    lines = md.split('\n')
-    # page_stats is a list of dicts with 'page' and approximate char positions
-    # Marker doesn't give line numbers, so insert markers at heading boundaries per page
-    result = []
-    page = 1
-    for line in lines:
-        if line.startswith('#') and page < len(page_stats):
-            page += 1
-            result.append(f'<span class="page-marker" data-page="{page}">p.{page}</span>')
-        result.append(line)
-    return '\n'.join(result)
+    """Page markers removed - unreliable without exact PDF page breaks."""
+    return md
 
 def clean_headers_footers(md: str) -> str:
     lines = md.split('\n')
@@ -100,13 +89,17 @@ def postprocess_markdown(raw_md: str, images: dict, metadata: dict) -> dict:
     toc      = extract_toc(md)
     sections = split_into_sections(md)
     title    = toc[0]["title"] if toc else "Untitled"
+
+    # Count actual page markers in the markdown
+    page_count = len(re.findall(r'<span class="page-marker"', md))
+
     return {
         "title": title,
         "toc": toc,
         "sections": sections,
         "images": images,
         "metadata": {
-            "page_count":    len(page_stats),
+            "page_count":    page_count,
             "has_equations": "$" in md,
             "has_tables":    "|" in md and "---" in md,
             "word_count":    len(md.split()),

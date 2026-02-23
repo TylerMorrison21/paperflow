@@ -50,7 +50,8 @@ FastAPI at `D:/projects/pdfreflow/api/` (or new `D:/projects/paperflow/backend/`
 ### Step 2: Frontend Reader [x] Done (2026-02-22)
 Next.js 14 (App Router) — Medium-style reading experience
 - Upload page → processing poll → reader page
-- KaTeX math, TOC sidebar, page markers, dark mode
+- KaTeX math, TOC sidebar, dark mode
+- **Note:** Page numbers not guaranteed; users navigate by section headings + deep links
 
 ### Step 2.5: Debug & Polish [x] Done (2026-02-22)
 ### Step 3: Deploy [x] Done (2026-02-23)
@@ -64,10 +65,29 @@ Next.js 14 (App Router) — Medium-style reading experience
 
 ### Step 4: Market Validation [~] In progress (2026-02-23)
 - [x] End-to-end test complete — upload → processing → reader page working
+- [x] Dark mode text visibility fixed (CSS variables for all components)
+- [x] Page markers removed — Datalab API doesn't support `paginate_output`, estimation was unreliable for citations
+  - Backend: `inject_page_markers()` returns markdown unchanged
+  - Frontend: `stripPageMarkers()` filters out old markers from cached documents
+  - Removed: `api/services/page_extractor.py`, page-marker CSS
+  - **Navigation:** Users reference by section headings + deep links instead of page numbers
+- [ ] P0 Market-ready base (Checklist):
+  - [ ] Analytics: Event tracking (visit_home / upload_start / parse_success / reader_view / share_copy_link / feedback_submit)
+  - [ ] Shareable link: /paper/[paper_id] direct access + copy link button in Reader
+  - [ ] Failure UX: Clear processing/failure messages + Retry button
+  - [ ] Rate limit & file size: 429/413 error codes + MAX_PDF_MB limit + error_code conventions
+  - [ ] Feedback: POST /api/feedback endpoint + saved to data/feedback/
+  - [ ] Privacy/Terms/Contact: Pages online + footer links
 - [ ] Test with 5 PDFs (arXiv ML, survey, CV, Chinese, scanned)
 - [ ] Take before/after screenshots
 - [ ] Post to r/GradSchool, r/MachineLearning, HN Show HN
 - [ ] Track: 50 uploads, 10 repeat users, 5 "I'd pay for this"
+
+**Design Decision (2026-02-23):** Removed page markers entirely. Marker API's hosted version doesn't return page breaks, and estimation was too inaccurate for academic citations. Users reference by section headings + deep links instead, which is more reliable for web articles.
+
+**Task Memory:**
+- Modified files: `api/services/postprocess.py`, `api/services/marker.py`, `frontend/src/components/Reader/ArticleBody.tsx`, `frontend/src/styles/reader.css`, `plan.md`, `CLAUDE.md`, `PaperFlow_Architecture.md`
+- Next step: Implement P0 market-ready features (analytics, sharing, failure UX, rate limiting, feedback, compliance pages)
 
 ---
 

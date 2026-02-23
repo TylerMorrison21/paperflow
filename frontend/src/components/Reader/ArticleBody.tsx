@@ -39,6 +39,11 @@ export default function ArticleBody({ sections, images, fontSize }: {
     },
   }
 
+  // Strip out page markers from markdown
+  const stripPageMarkers = (md: string) => {
+    return md.replace(/<span class="page-marker"[^>]*>.*?<\/span>/g, '')
+  }
+
   return (
     <div className="reader-body" style={{ fontSize }}>
       {sections.map(s => (
@@ -48,7 +53,7 @@ export default function ArticleBody({ sections, images, fontSize }: {
             rehypePlugins={[rehypeRaw, rehypeKatex]}
             components={components}
           >
-            {s.markdown}
+            {stripPageMarkers(s.markdown)}
           </ReactMarkdown>
         </section>
       ))}

@@ -31,4 +31,5 @@ export interface PaperStatus {
   paper_id: string
   status: 'processing' | 'complete' | 'error'
   error?: string
+  error_code?: string
 }

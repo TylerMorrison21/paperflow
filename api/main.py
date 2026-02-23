@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes.parse import router
+from api.routes.parse import router as parse_router
+from api.routes.feedback import router as feedback_router
 from api.config import CORS_ORIGINS
 
 app = FastAPI(title="PaperFlow API")
@@ -12,7 +13,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+app.include_router(parse_router)
+app.include_router(feedback_router)
 
 @app.get("/health")
 def health():
