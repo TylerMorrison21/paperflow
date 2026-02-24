@@ -99,31 +99,48 @@ export default function UploadZone({ onComplete }: { onComplete: (id: string) =>
   }
 
   return (
-    <div
-      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-      onClick={() => document.getElementById('pdf-input')?.click()}
-      style={{
-        border: `2px dashed ${dragOver ? 'var(--accent)' : '#ccc'}`,
-        borderRadius: 12,
-        padding: '3rem 2rem',
-        textAlign: 'center',
-        cursor: 'pointer',
-        background: dragOver ? '#fff5f5' : 'transparent',
-        transition: 'all 0.2s',
-        maxWidth: 480,
-        width: '100%',
-      }}
-    >
-      <input id="pdf-input" type="file" accept=".pdf" style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-      <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📄</div>
-      <p style={{ fontFamily: 'system-ui', fontWeight: 600, marginBottom: '0.5rem' }}>
-        {state.status === 'uploading' ? 'Uploading…' : 'Drop a PDF here, or click to browse'}
-      </p>
-      <p style={{ fontFamily: 'system-ui', fontSize: '0.875rem', color: 'var(--muted)' }}>PDF files only</p>
-    </div>
+    <>
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
+        onClick={() => document.getElementById('pdf-input')?.click()}
+        style={{
+          border: `2px dashed ${dragOver ? 'var(--accent)' : '#ccc'}`,
+          borderRadius: 12,
+          padding: '3rem 2rem',
+          textAlign: 'center',
+          cursor: 'pointer',
+          background: dragOver ? '#fff5f5' : 'transparent',
+          transition: 'all 0.2s',
+          maxWidth: 480,
+          width: '100%',
+        }}
+      >
+        <input id="pdf-input" type="file" accept=".pdf" style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+        <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📄</div>
+        <p style={{ fontFamily: 'system-ui', fontWeight: 600, marginBottom: '0.5rem' }}>
+          {state.status === 'uploading' ? 'Uploading…' : 'Drop a PDF here, or click to browse'}
+        </p>
+        <p style={{ fontFamily: 'system-ui', fontSize: '0.875rem', color: 'var(--muted)' }}>PDF files only</p>
+      </div>
+
+      {/* Trust Signal */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        marginTop: '1rem',
+        fontFamily: 'system-ui',
+        fontSize: '0.875rem',
+        color: 'var(--muted)'
+      }}>
+        <span style={{ fontSize: '1rem' }}>🔒</span>
+        <span>Private & secure. We never use your data to train AI.</span>
+      </div>
+    </>
   )
 }
 

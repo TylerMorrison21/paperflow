@@ -113,7 +113,7 @@ export default function Home() {
               Do you store my files?
             </h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              We store what's needed to render your reading link. You can request deletion anytime.
+              We store converted papers to enable shareable links. Original PDFs are processed and discarded. You can request deletion anytime at contact@paperflow.app.
             </p>
           </div>
           <div>
