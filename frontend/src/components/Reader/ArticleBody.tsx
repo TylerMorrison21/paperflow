@@ -1,11 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import { Section } from '@/lib/types'
 import InlinePopover from './InlinePopover'
+import HighlightToolbar from './HighlightToolbar'
+import { useHighlights } from '@/hooks/useHighlights'
 import { analytics } from '@/lib/analytics'
 import '@/styles/reader.css'
 
@@ -27,6 +29,71 @@ export default function ArticleBody({ sections, images, fontSize, paperId }: {
   paperId: string
 }) {
   const [popoverTarget, setPopoverTarget] = useState<string | null>(null)
+  const [highlightToolbar, setHighlightToolbar] = useState<{ top: number, left: number } | null>(null)
+  const [selectedText, setSelectedText] = useState<string>('')
+  const { highlights, addHighlight } = useHighlights(paperId)
+
+  // Handle text selection
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) {
+        setHighlightToolbar(null)
+        return
+      }
+
+      const text = selection.toString().trim()
+      if (text.length < 3) {
+        setHighlightToolbar(null)
+        return
+      }
+
+      // Check if selection is within reader body
+      const range = selection.getRangeAt(0)
+      const container = range.commonAncestorContainer
+      const readerBody = document.querySelector('.reader-body')
+      if (!readerBody?.contains(container)) {
+        setHighlightToolbar(null)
+        return
+      }
+
+      setSelectedText(text)
+
+      // Position toolbar above selection
+      const rect = range.getBoundingClientRect()
+      setHighlightToolbar({
+        top: window.scrollY + rect.top - 50,
+        left: rect.left + rect.width / 2 - 100
+      })
+    }
+
+    document.addEventListener('mouseup', handleSelection)
+    document.addEventListener('selectionchange', handleSelection)
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelection)
+      document.removeEventListener('selectionchange', handleSelection)
+    }
+  }, [])
+
+  const handleHighlight = (color: string) => {
+    if (!selectedText) return
+
+    // Get context (surrounding text)
+    const selection = window.getSelection()
+    const range = selection?.getRangeAt(0)
+    const context = range?.startContainer.parentElement?.textContent?.slice(0, 100)
+
+    addHighlight(selectedText, color, context)
+
+    // Track analytics
+    analytics.textHighlight?.(paperId, color)
+
+    // Clear selection and toolbar
+    window.getSelection()?.removeAllRanges()
+    setHighlightToolbar(null)
+    setSelectedText('')
+  }
 
   const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4') =>
     ({ children, ...p }: any) => <Tag id={slugify(String(children))} {...p}>{children}</Tag>
@@ -111,6 +178,15 @@ export default function ArticleBody({ sections, images, fontSize, paperId }: {
         <InlinePopover
           targetId={popoverTarget}
           onClose={() => setPopoverTarget(null)}
+        />
+      )}
+
+      {/* Highlight Toolbar */}
+      {highlightToolbar && (
+        <HighlightToolbar
+          position={highlightToolbar}
+          onHighlight={handleHighlight}
+          onClose={() => setHighlightToolbar(null)}
         />
       )}
     </>

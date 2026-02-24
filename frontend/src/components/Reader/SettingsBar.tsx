@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { analytics } from '@/lib/analytics'
 import { PaperData } from '@/lib/types'
+import { useHighlights } from '@/hooks/useHighlights'
 
 export default function SettingsBar({ title, fontSize, setFontSize, dark, setDark, paperId, paper }: {
   title: string
@@ -15,6 +16,8 @@ export default function SettingsBar({ title, fontSize, setFontSize, dark, setDar
 }) {
   const [copied, setCopied] = useState(false)
   const [exported, setExported] = useState(false)
+  const [highlightsExported, setHighlightsExported] = useState(false)
+  const { highlights, exportHighlights } = useHighlights(paperId)
 
   const sizes = [16, 18, 20]
   const cycle = (dir: 1 | -1) => {
@@ -54,6 +57,29 @@ export default function SettingsBar({ title, fontSize, setFontSize, dark, setDar
     setTimeout(() => setExported(false), 2000)
   }
 
+  const handleExportHighlights = () => {
+    const markdown = exportHighlights(paper.title)
+    if (!markdown) {
+      alert('No highlights to export')
+      return
+    }
+
+    // Create blob and download
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_highlights.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setHighlightsExported(true)
+    analytics.exportHighlights?.(paperId, highlights.length)
+    setTimeout(() => setHighlightsExported(false), 2000)
+  }
+
   const bar: React.CSSProperties = {
     position: 'sticky', top: 0, zIndex: 10,
     display: 'flex', alignItems: 'center', gap: '1rem',
@@ -68,6 +94,11 @@ export default function SettingsBar({ title, fontSize, setFontSize, dark, setDar
     <div style={bar}>
       <Link href="/" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '1.1rem' }}>←</Link>
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{title}</span>
+      {highlights.length > 0 && (
+        <button style={btn} onClick={handleExportHighlights}>
+          {highlightsExported ? '✓ Exported!' : `💡 Export ${highlights.length} Highlights`}
+        </button>
+      )}
       <button style={btn} onClick={handleExportMarkdown}>
         {exported ? '✓ Exported!' : '📥 Export MD'}
       </button>

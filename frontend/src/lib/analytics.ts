@@ -43,5 +43,11 @@ export const analytics = {
   },
   inlinePopover: (paperId: string, targetType: string) => {
     if (POSTHOG_KEY) posthog.capture('inline_popover', { paperId, targetType })
+  },
+  textHighlight: (paperId: string, color: string) => {
+    if (POSTHOG_KEY) posthog.capture('text_highlight', { paperId, color })
+  },
+  exportHighlights: (paperId: string, count: number) => {
+    if (POSTHOG_KEY) posthog.capture('export_highlights', { paperId, count })
   }
 }
