@@ -18,8 +18,13 @@ export default function Home() {
         <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontWeight: 700, lineHeight: 1.1, marginBottom: '1.5rem' }}>
           Read papers without scroll-back hell.
         </h1>
-        <p style={{ fontSize: '1.25rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+        <p style={{ fontSize: '1.25rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
           Click any Figure / Table / Reference inline—keep your place, keep context. Turn PDFs into a clean, shareable reading link.
+        </p>
+
+        {/* Target Audience */}
+        <p style={{ fontSize: '1rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '2.5rem', opacity: 0.8 }}>
+          Built for researchers, students, and anyone who reads academic papers on their phone.
         </p>
 
         {/* CTA */}
@@ -41,17 +46,38 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 3 Bullets */}
+        {/* Feature Bullets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', fontSize: '0.95rem', color: 'var(--muted)' }}>
-          <div>✓ Click citations/figures to view inline (no scroll-back hell)</div>
-          <div>✓ Copy text with auto-citation (spreads virally in Slack/Discord/email)</div>
-          <div>✓ Highlight text + export to Markdown (zero-friction knowledge capture)</div>
+          <div>✓ Click citations, figures & tables to view inline — no scroll-back hell</div>
+          <div>✓ Highlight text + export to Markdown for zero-friction knowledge capture</div>
+          <div>✓ Copy text with auto-citation — perfect for Slack, Discord, and email</div>
           <div>✓ Shareable link for every paper</div>
         </div>
       </div>
 
+      {/* Demo Screenshot Placeholder */}
+      {/* TODO: Add demo GIF/screenshot showing inline citation popup */}
+      <div style={{
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto 3rem',
+        aspectRatio: '16/9',
+        background: '#f5f5f5',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#999',
+        fontSize: '1rem'
+      }}>
+        Demo screenshot placeholder
+      </div>
+
       {/* Upload Zone */}
-      <div id="upload-zone" style={{ marginBottom: '4rem', width: '100%', maxWidth: 600, display: 'flex', justifyContent: 'center' }}>
+      <div id="upload-zone" style={{ marginBottom: '4rem', width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        <p style={{ fontSize: '0.95rem', color: 'var(--muted)' }}>
+          Or <a href="#" onClick={(e) => { e.preventDefault(); alert('Demo paper coming soon!') }} style={{ color: 'var(--accent)', textDecoration: 'underline' }}>try a demo paper →</a>
+        </p>
         <UploadZone onComplete={id => router.push(`/read/${id}`)} />
       </div>
 
