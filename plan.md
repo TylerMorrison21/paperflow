@@ -72,13 +72,14 @@ Next.js 14 (App Router) — Medium-style reading experience
   - Removed: `api/services/page_extractor.py`, page-marker CSS
   - **Navigation:** Users reference by section headings + deep links instead of page numbers
 - [x] P0 Market-ready base (Checklist):
-  - [x] Analytics: PostHog event tracking (visit_home / upload_start / parse_success / parse_failed / reader_view / share_copy_link / feedback_submit)
+  - [x] Analytics: PostHog event tracking (visit_home / upload_start / parse_success / parse_failed / reader_view / share_copy_link / feedback_submit / export_markdown)
   - [x] Shareable link: /read/[paper_id] direct access + 🔗 Share button in SettingsBar with copy-to-clipboard
   - [x] Failure UX: Error handling with error_code conventions (RATE_LIMITED, FILE_TOO_LARGE, PARSE_FAILED, INVALID_PDF)
   - [x] Rate limit & file size: In-memory rate limiter (10 req/60s per IP, 429 error) + MAX_PDF_MB env var (default 50MB, 413 error)
   - [x] Feedback: POST /api/feedback endpoint + saved to data/feedback/{timestamp}.json
   - [x] Landing page: New hero section, "How it works", FAQ, footer with Privacy/Terms/Contact links
-  - [ ] Privacy/Terms/Contact: Actual pages (currently just links in footer)
+  - [x] Privacy/Terms/Contact: All pages live with proper content
+  - [x] Markdown export: 📥 Export MD button in reader for Obsidian/Notion workflow
 - [ ] Test with 5 PDFs (arXiv ML, survey, CV, Chinese, scanned)
 - [ ] Take before/after screenshots
 - [ ] Post to r/GradSchool, r/MachineLearning, HN Show HN
@@ -89,9 +90,9 @@ Next.js 14 (App Router) — Medium-style reading experience
 **Task Memory (2026-02-24):**
 - Modified files:
   - Backend: `api/main.py`, `api/routes/parse.py`, `api/routes/feedback.py`, `api/middleware/rate_limit.py`, `api/errors.py`, `api/config.py`
-  - Frontend: `frontend/src/app/page.tsx`, `frontend/src/lib/analytics.ts`, `frontend/src/components/Reader/SettingsBar.tsx`, `frontend/src/components/UploadZone.tsx`
-  - Docs: `LANDING_PAGE_UPDATE.md` (new)
-- Next step: Create Privacy/Terms/Contact pages, then test with 5 diverse PDFs before market launch
+  - Frontend: `frontend/src/app/page.tsx`, `frontend/src/app/privacy/page.tsx`, `frontend/src/app/terms/page.tsx`, `frontend/src/app/contact/page.tsx`, `frontend/src/lib/analytics.ts`, `frontend/src/components/Reader/SettingsBar.tsx`, `frontend/src/components/Reader/ReaderLayout.tsx`, `frontend/src/components/UploadZone.tsx`
+  - Docs: `LANDING_PAGE_UPDATE.md` (new), `CLAUDE.md`, `plan.md`
+- Next step: Test with 5 diverse PDFs, take screenshots, prepare for market launch
 
 ---
 
