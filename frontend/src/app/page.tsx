@@ -344,7 +344,7 @@ export default function Home() {
           background: '#1a1a1a',
           color: 'white'
         }}>
-          <p>&copy; 2024 PaperFlow. All rights reserved.</p>
+          <p>&copy; 2026 PaperFlow. All rights reserved.</p>
           <div style={{ marginTop: '1rem' }}>
             <a href="/privacy" style={{ color: '#667eea', textDecoration: 'none', margin: '0 1rem' }}>Privacy</a>
             <a href="/terms" style={{ color: '#667eea', textDecoration: 'none', margin: '0 1rem' }}>Terms</a>
