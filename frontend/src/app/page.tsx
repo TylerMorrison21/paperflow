@@ -59,6 +59,7 @@ export default function Home() {
         {/* 3 Bullets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', fontSize: '0.95rem', color: 'var(--muted)' }}>
           <div>✓ Inline Figures/Tables/References (no "where was Fig. 3?")</div>
+          <div>✓ Export to clean Markdown (for Obsidian/Notion)</div>
           <div>✓ Mobile-friendly reading view + sections</div>
           <div>✓ Shareable link for every paper</div>
         </div>

@@ -2,16 +2,19 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { analytics } from '@/lib/analytics'
+import { PaperData } from '@/lib/types'
 
-export default function SettingsBar({ title, fontSize, setFontSize, dark, setDark, paperId }: {
+export default function SettingsBar({ title, fontSize, setFontSize, dark, setDark, paperId, paper }: {
   title: string
   fontSize: number
   setFontSize: (n: number) => void
   dark: boolean
   setDark: (v: boolean) => void
   paperId: string
+  paper: PaperData
 }) {
   const [copied, setCopied] = useState(false)
+  const [exported, setExported] = useState(false)
 
   const sizes = [16, 18, 20]
   const cycle = (dir: 1 | -1) => {
@@ -25,6 +28,30 @@ export default function SettingsBar({ title, fontSize, setFontSize, dark, setDar
     setCopied(true)
     analytics.shareCopyLink(paperId)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleExportMarkdown = () => {
+    // Build clean markdown with title and sections
+    let markdown = `# ${paper.title}\n\n`
+
+    paper.sections.forEach(section => {
+      markdown += section.markdown + '\n\n'
+    })
+
+    // Create blob and download
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setExported(true)
+    analytics.exportMarkdown(paperId)
+    setTimeout(() => setExported(false), 2000)
   }
 
   const bar: React.CSSProperties = {
@@ -41,6 +68,9 @@ export default function SettingsBar({ title, fontSize, setFontSize, dark, setDar
     <div style={bar}>
       <Link href="/" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '1.1rem' }}>←</Link>
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{title}</span>
+      <button style={btn} onClick={handleExportMarkdown}>
+        {exported ? '✓ Exported!' : '📥 Export MD'}
+      </button>
       <button style={btn} onClick={handleCopyLink}>
         {copied ? '✓ Copied!' : '🔗 Share'}
       </button>

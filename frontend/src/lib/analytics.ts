@@ -37,5 +37,8 @@ export const analytics = {
   },
   feedbackSubmit: (type: string, message: string) => {
     if (POSTHOG_KEY) posthog.capture('feedback_submit', { type, message })
+  },
+  exportMarkdown: (paperId: string) => {
+    if (POSTHOG_KEY) posthog.capture('export_markdown', { paperId })
   }
 }

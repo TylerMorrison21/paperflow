@@ -29,7 +29,7 @@ export default function ReaderLayout({ paper, paperId }: { paper: PaperData, pap
 
   return (
     <div style={{ background: dark ? '#1a1a1a' : 'var(--bg)', minHeight: '100vh' }}>
-      <SettingsBar title={paper.title} fontSize={fontSize} setFontSize={setFontSize} dark={dark} setDark={setDark} paperId={paperId} />
+      <SettingsBar title={paper.title} fontSize={fontSize} setFontSize={setFontSize} dark={dark} setDark={setDark} paperId={paperId} paper={paper} />
 
       <div style={{ display: 'flex' }}>
         {/* Desktop TOC */}
