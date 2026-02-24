@@ -73,10 +73,11 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
 - `inline_popover` — User clicks citation/figure/table link (includes paperId, targetType)
 - `text_highlight` — User highlights text (includes paperId, color)
 - `export_highlights` — User exports highlights (includes paperId, count)
+- `copy_with_citation` — User copies text with auto-citation (includes paperId) - tracks viral spread
 
 **Landing Page Features (2026-02-24):**
 - Hero section: "Read papers without scroll-back hell" + 2 CTAs (Upload PDF / View demo)
-- 4 key benefits: Inline citation/figure popovers, text highlighting + export, full paper Markdown export, shareable links
+- 4 key benefits: Inline citation/figure popovers, copy with auto-citation (viral), text highlighting + export, shareable links
 - "How it works" section (3 steps with emoji icons)
 - Mini FAQ (3 questions: scanned PDFs, storage, pricing)
 - Footer with Privacy/Terms/Contact links (pages live)
@@ -89,7 +90,14 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
   - Close via click outside, Escape key, or X button
   - Detects targets by ID patterns (fig-, table-, ref-) or HTML tags
   - Section headings still scroll normally
-  - Transforms static PDFs into interactive semantic network
+  - Transforms static PDFs into interactive semantic networks
+- **Copy with Citation** (Viral PLG growth hack):
+  - Every copy operation automatically appends: "—\nExtracted via PaperFlow.app\n[Title]\n[Link]"
+  - Silent attribution spreads product virally in Slack/Discord/email
+  - Solves real pain: professionals need to cite sources anyway
+  - Highly targeted exposure: reaches other researchers/professionals
+  - Zero friction: users don't need to do anything
+  - Classic legal tech/academic tool feature
 - **Text highlighting + export** (Ultimate lean startup feature):
   - Select text → color picker toolbar (4 colors: yellow, green, blue, pink)
   - Highlights stored in localStorage (no auth/database/sync needed)
