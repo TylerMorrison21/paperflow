@@ -51,7 +51,7 @@ export default function Home() {
       </div>
 
       {/* Upload Zone */}
-      <div id="upload-zone" style={{ marginBottom: '4rem', width: '100%', maxWidth: 600 }}>
+      <div id="upload-zone" style={{ marginBottom: '4rem', width: '100%', maxWidth: 600, display: 'flex', justifyContent: 'center' }}>
         <UploadZone onComplete={id => router.push(`/read/${id}`)} />
       </div>
 

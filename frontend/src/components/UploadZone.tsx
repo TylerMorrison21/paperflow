@@ -109,12 +109,16 @@ export default function UploadZone({ onComplete }: { onComplete: (id: string) =>
           border: `2px dashed ${dragOver ? 'var(--accent)' : '#ccc'}`,
           borderRadius: 12,
           padding: '3rem 2rem',
-          textAlign: 'center',
           cursor: 'pointer',
           background: dragOver ? '#fff5f5' : 'transparent',
           transition: 'all 0.2s',
           maxWidth: 480,
           width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
         }}
       >
         <input id="pdf-input" type="file" accept=".pdf" style={{ display: 'none' }}
