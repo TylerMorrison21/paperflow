@@ -71,10 +71,12 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
 - `feedback_submit` — User submits feedback (includes type, message)
 - `export_markdown` — User exports paper to Markdown (includes paperId)
 - `inline_popover` — User clicks citation/figure/table link (includes paperId, targetType)
+- `text_highlight` — User highlights text (includes paperId, color)
+- `export_highlights` — User exports highlights (includes paperId, count)
 
 **Landing Page Features (2026-02-24):**
 - Hero section: "Read papers without scroll-back hell" + 2 CTAs (Upload PDF / View demo)
-- 4 key benefits: Inline citation/figure popovers, Markdown export (Obsidian/Notion), mobile-friendly, shareable
+- 4 key benefits: Inline citation/figure popovers, text highlighting + export, full paper Markdown export, shareable links
 - "How it works" section (3 steps with emoji icons)
 - Mini FAQ (3 questions: scanned PDFs, storage, pricing)
 - Footer with Privacy/Terms/Contact links (pages live)
@@ -88,6 +90,14 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
   - Detects targets by ID patterns (fig-, table-, ref-) or HTML tags
   - Section headings still scroll normally
   - Transforms static PDFs into interactive semantic network
+- **Text highlighting + export** (Ultimate lean startup feature):
+  - Select text → color picker toolbar (4 colors: yellow, green, blue, pink)
+  - Highlights stored in localStorage (no auth/database/sync needed)
+  - One-click export: "💡 Export N Highlights" button appears when highlights exist
+  - Downloads clean Markdown with quotes + context
+  - Zero-friction onboarding: no registration required
+  - Perfect for Obsidian/Notion workflow
+  - Irresistible retention hook for hardcore productivity users
 - Markdown export: 📥 Export MD button downloads clean .md file for Obsidian/Notion
 - Shareable links: `/read/{paper_id}` with copy-to-clipboard button in SettingsBar
 - Dark mode toggle (persists across page)

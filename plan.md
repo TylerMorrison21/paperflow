@@ -72,7 +72,7 @@ Next.js 14 (App Router) — Medium-style reading experience
   - Removed: `api/services/page_extractor.py`, page-marker CSS
   - **Navigation:** Users reference by section headings + deep links instead of page numbers
 - [x] P0 Market-ready base (Checklist):
-  - [x] Analytics: PostHog event tracking (visit_home / upload_start / parse_success / parse_failed / reader_view / share_copy_link / feedback_submit / export_markdown / inline_popover)
+  - [x] Analytics: PostHog event tracking (visit_home / upload_start / parse_success / parse_failed / reader_view / share_copy_link / feedback_submit / export_markdown / inline_popover / text_highlight / export_highlights)
   - [x] Shareable link: /read/[paper_id] direct access + 🔗 Share button in SettingsBar with copy-to-clipboard
   - [x] Failure UX: Error handling with error_code conventions (RATE_LIMITED, FILE_TOO_LARGE, PARSE_FAILED, INVALID_PDF)
   - [x] Rate limit & file size: In-memory rate limiter (10 req/60s per IP, 429 error) + MAX_PDF_MB env var (default 50MB, 413 error)
@@ -82,6 +82,7 @@ Next.js 14 (App Router) — Medium-style reading experience
   - [x] Markdown export: 📥 Export MD button in reader for Obsidian/Notion workflow
   - [x] Trust signal: 🔒 "Private & secure. We never use your data to train AI." below upload box
   - [x] Inline popovers: Click citations/figures/tables to view inline without scroll-back hell (THE SOUL OF THE MVP)
+  - [x] Text highlighting + export: Select text → color picker → localStorage → one-click export (ULTIMATE LEAN STARTUP)
 - [ ] Test with 5 PDFs (arXiv ML, survey, CV, Chinese, scanned)
 - [ ] Take before/after screenshots
 - [ ] Post to r/GradSchool, r/MachineLearning, HN Show HN
@@ -92,10 +93,11 @@ Next.js 14 (App Router) — Medium-style reading experience
 **Task Memory (2026-02-24):**
 - Modified files:
   - Backend: `api/main.py`, `api/routes/parse.py`, `api/routes/feedback.py`, `api/middleware/rate_limit.py`, `api/errors.py`, `api/config.py`
-  - Frontend: `frontend/src/app/page.tsx`, `frontend/src/app/privacy/page.tsx`, `frontend/src/app/terms/page.tsx`, `frontend/src/app/contact/page.tsx`, `frontend/src/lib/analytics.ts`, `frontend/src/components/Reader/SettingsBar.tsx`, `frontend/src/components/Reader/ReaderLayout.tsx`, `frontend/src/components/Reader/ArticleBody.tsx`, `frontend/src/components/Reader/InlinePopover.tsx` (new), `frontend/src/components/UploadZone.tsx`
+  - Frontend: `frontend/src/app/page.tsx`, `frontend/src/app/privacy/page.tsx`, `frontend/src/app/terms/page.tsx`, `frontend/src/app/contact/page.tsx`, `frontend/src/lib/analytics.ts`, `frontend/src/components/Reader/SettingsBar.tsx`, `frontend/src/components/Reader/ReaderLayout.tsx`, `frontend/src/components/Reader/ArticleBody.tsx`, `frontend/src/components/Reader/InlinePopover.tsx` (new), `frontend/src/components/Reader/HighlightToolbar.tsx` (new), `frontend/src/components/UploadZone.tsx`, `frontend/src/hooks/useHighlights.ts` (new)
   - Docs: `LANDING_PAGE_UPDATE.md` (new), `CLAUDE.md`, `plan.md`
 - Key features completed:
   - Inline popovers for citations/figures/tables (eliminates scroll-back hell)
+  - Text highlighting with localStorage + one-click export (zero-friction knowledge capture)
   - Markdown export for Obsidian/Notion
   - Privacy trust signal at upload point
   - Full compliance pages
