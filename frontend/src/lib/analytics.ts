@@ -40,5 +40,8 @@ export const analytics = {
   },
   exportMarkdown: (paperId: string) => {
     if (POSTHOG_KEY) posthog.capture('export_markdown', { paperId })
+  },
+  inlinePopover: (paperId: string, targetType: string) => {
+    if (POSTHOG_KEY) posthog.capture('inline_popover', { paperId, targetType })
   }
 }
