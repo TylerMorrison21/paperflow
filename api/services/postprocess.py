@@ -81,6 +81,42 @@ def split_into_sections(md: str) -> list:
 
     return sections
 
+def make_references_clickable(md: str) -> str:
+    """Convert citation/figure/table references into clickable anchor links."""
+
+    # Figure references: Fig. 3, Figure 2, (Fig. 1)
+    md = re.sub(
+        r'\(?(Fig\.?|Figure)\s*\.?\s*(\d+[a-z]?)\)?',
+        r'[\1 \2](#fig-\2)',
+        md,
+        flags=re.IGNORECASE
+    )
+
+    # Table references: Table 2, (Table 1)
+    md = re.sub(
+        r'\(?(Table)\s+(\d+[a-z]?)\)?',
+        r'[\1 \2](#table-\2)',
+        md,
+        flags=re.IGNORECASE
+    )
+
+    # Numbered citations: [1], [2-5], [10,15]
+    md = re.sub(
+        r'\[(\d+(?:\s*[-–,]\s*\d+)*)\]',
+        r'[\[\1\]](#ref-\1)',
+        md
+    )
+
+    # Author-year citations: (Smith et al., 2020)
+    # More conservative pattern to avoid false positives
+    md = re.sub(
+        r'\(([A-Z][a-z]+(?:\s+(?:et\s+al\.?|&|and)\s+[A-Z][a-z]+)?,?\s+\d{4}[a-z]?)\)',
+        r'[(\1)](#cite-\1)',
+        md
+    )
+
+    return md
+
 def postprocess_markdown(raw_md: str, images: dict, metadata: dict) -> dict:
     if not raw_md or raw_md is None:
         raise ValueError("Marker API returned empty or None markdown. The PDF may be invalid, corrupted, or unsupported.")
@@ -89,6 +125,7 @@ def postprocess_markdown(raw_md: str, images: dict, metadata: dict) -> dict:
     page_stats = metadata.get("page_stats", [])
     md = inject_page_markers(md, page_stats)
     md = clean_headers_footers(md)
+    md = make_references_clickable(md)
     toc      = extract_toc(md)
     sections = split_into_sections(md)
     title    = toc[0]["title"] if toc else "Untitled"
