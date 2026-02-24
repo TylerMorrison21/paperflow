@@ -49,5 +49,8 @@ export const analytics = {
   },
   exportHighlights: (paperId: string, count: number) => {
     if (POSTHOG_KEY) posthog.capture('export_highlights', { paperId, count })
+  },
+  copyWithCitation: (paperId: string) => {
+    if (POSTHOG_KEY) posthog.capture('copy_with_citation', { paperId })
   }
 }

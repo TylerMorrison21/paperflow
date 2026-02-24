@@ -8,6 +8,7 @@ import { Section } from '@/lib/types'
 import InlinePopover from './InlinePopover'
 import HighlightToolbar from './HighlightToolbar'
 import { useHighlights } from '@/hooks/useHighlights'
+import { useCopyWithCitation } from '@/hooks/useCopyWithCitation'
 import { analytics } from '@/lib/analytics'
 import '@/styles/reader.css'
 
@@ -22,16 +23,20 @@ function resolveImage(src: string, images: Record<string, string>): string {
   return raw.startsWith('data:') ? raw : `data:image/png;base64,${raw}`
 }
 
-export default function ArticleBody({ sections, images, fontSize, paperId }: {
+export default function ArticleBody({ sections, images, fontSize, paperId, paperTitle }: {
   sections: Section[]
   images: Record<string, string>
   fontSize: number
   paperId: string
+  paperTitle: string
 }) {
   const [popoverTarget, setPopoverTarget] = useState<string | null>(null)
   const [highlightToolbar, setHighlightToolbar] = useState<{ top: number, left: number } | null>(null)
   const [selectedText, setSelectedText] = useState<string>('')
   const { highlights, addHighlight } = useHighlights(paperId)
+
+  // Enable copy with citation
+  useCopyWithCitation({ paperId, paperTitle })
 
   // Handle text selection
   useEffect(() => {

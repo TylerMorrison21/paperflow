@@ -56,7 +56,7 @@ export default function ReaderLayout({ paper, paperId }: { paper: PaperData, pap
         )}
 
         <main style={{ flex: 1, minWidth: 0 }}>
-          <ArticleBody sections={paper.sections} images={paper.images} fontSize={fontSize} paperId={paperId} />
+          <ArticleBody sections={paper.sections} images={paper.images} fontSize={fontSize} paperId={paperId} paperTitle={paper.title} />
         </main>
       </div>
     </div>

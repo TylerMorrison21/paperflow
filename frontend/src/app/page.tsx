@@ -59,8 +59,8 @@ export default function Home() {
         {/* 3 Bullets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', fontSize: '0.95rem', color: 'var(--muted)' }}>
           <div>✓ Click citations/figures to view inline (no scroll-back hell)</div>
+          <div>✓ Copy text with auto-citation (spreads virally in Slack/Discord/email)</div>
           <div>✓ Highlight text + export to Markdown (zero-friction knowledge capture)</div>
-          <div>✓ Export full paper to Markdown (for Obsidian/Notion)</div>
           <div>✓ Shareable link for every paper</div>
         </div>
       </div>
