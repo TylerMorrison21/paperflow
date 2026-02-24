@@ -70,15 +70,24 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
 - `share_copy_link` — User copies shareable link via 🔗 Share button (includes paperId)
 - `feedback_submit` — User submits feedback (includes type, message)
 - `export_markdown` — User exports paper to Markdown (includes paperId)
+- `inline_popover` — User clicks citation/figure/table link (includes paperId, targetType)
 
 **Landing Page Features (2026-02-24):**
 - Hero section: "Read papers without scroll-back hell" + 2 CTAs (Upload PDF / View demo)
-- 4 key benefits: Inline links, Markdown export (Obsidian/Notion), mobile-friendly, shareable
+- 4 key benefits: Inline citation/figure popovers, Markdown export (Obsidian/Notion), mobile-friendly, shareable
 - "How it works" section (3 steps with emoji icons)
 - Mini FAQ (3 questions: scanned PDFs, storage, pricing)
 - Footer with Privacy/Terms/Contact links (pages live)
+- Trust signal: 🔒 "Private & secure. We never use your data to train AI." below upload box
 
-**Reader Features:**
+**Reader Features (The Soul of the MVP):**
+- **Inline popovers**: Click any citation/figure/table link to view inline without losing your place
+  - Smooth 0.15s fade-in animation, no delay
+  - Auto-positions to avoid viewport edges
+  - Close via click outside, Escape key, or X button
+  - Detects targets by ID patterns (fig-, table-, ref-) or HTML tags
+  - Section headings still scroll normally
+  - Transforms static PDFs into interactive semantic network
 - Markdown export: 📥 Export MD button downloads clean .md file for Obsidian/Notion
 - Shareable links: `/read/{paper_id}` with copy-to-clipboard button in SettingsBar
 - Dark mode toggle (persists across page)
