@@ -84,6 +84,29 @@ def split_into_sections(md: str) -> list:
 def make_references_clickable(md: str) -> str:
     """Convert citation/figure/table references into clickable anchor links."""
 
+    # First, add IDs to figures and tables so they can be targeted
+    # Match figure blocks: ![caption](image) or <img> tags
+    figure_count = 0
+    def add_figure_id(match):
+        nonlocal figure_count
+        figure_count += 1
+        # Wrap in a div with an ID
+        return f'<div id="fig-{figure_count}">\n\n{match.group(0)}\n\n</div>'
+
+    # Match markdown images
+    md = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', add_figure_id, md)
+
+    # Add IDs to markdown tables
+    table_count = 0
+    def add_table_id(match):
+        nonlocal table_count
+        table_count += 1
+        return f'<div id="table-{table_count}">\n\n{match.group(0)}\n\n</div>'
+
+    # Match markdown tables (lines with | and ---)
+    md = re.sub(r'(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n)*)', add_table_id, md)
+
+    # Now make references clickable
     # Figure references: Fig. 3, Figure 2, (Fig. 1)
     md = re.sub(
         r'\(?(Fig\.?|Figure)\s*\.?\s*(\d+[a-z]?)\)?',
@@ -101,8 +124,9 @@ def make_references_clickable(md: str) -> str:
     )
 
     # Numbered citations: [1], [2-5], [10,15]
+    # Be careful not to match markdown links
     md = re.sub(
-        r'\[(\d+(?:\s*[-–,]\s*\d+)*)\]',
+        r'(?<!\])\[(\d+(?:\s*[-–,]\s*\d+)*)\](?!\()',
         r'[\[\1\]](#ref-\1)',
         md
     )
