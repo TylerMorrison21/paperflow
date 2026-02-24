@@ -22,8 +22,8 @@ export default function Home() {
           Click any Figure / Table / Reference inline—keep your place, keep context. Turn PDFs into a clean, shareable reading link.
         </p>
 
-        {/* CTAs */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '2rem' }}>
+        {/* CTA */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
           <button
             onClick={() => document.getElementById('upload-zone')?.scrollIntoView({ behavior: 'smooth' })}
             style={{
@@ -38,21 +38,6 @@ export default function Home() {
             }}
           >
             Upload a PDF
-          </button>
-          <button
-            onClick={() => router.push('/read/fa494148-786a-43bb-b971-d014a81e7773')}
-            style={{
-              padding: '0.875rem 2rem',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              background: 'transparent',
-              color: 'var(--foreground)',
-              border: '2px solid var(--border)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            View a demo paper
           </button>
         </div>
 
