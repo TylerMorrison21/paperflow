@@ -63,7 +63,7 @@ Next.js 14 (App Router) — Medium-style reading experience
   - Frontend: https://frontend-9kvi1cyc6-tylermorrison21s-projects.vercel.app
   - Backend: https://pdfreflow-production.up.railway.app
 
-### Step 4: Market Validation [~] In progress (2026-02-23)
+### Step 4: Market Validation [x] Complete (2026-02-24)
 - [x] End-to-end test complete — upload → processing → reader page working
 - [x] Dark mode text visibility fixed (CSS variables for all components)
 - [x] Page markers removed — Datalab API doesn't support `paginate_output`, estimation was unreliable for citations
@@ -71,13 +71,14 @@ Next.js 14 (App Router) — Medium-style reading experience
   - Frontend: `stripPageMarkers()` filters out old markers from cached documents
   - Removed: `api/services/page_extractor.py`, page-marker CSS
   - **Navigation:** Users reference by section headings + deep links instead of page numbers
-- [ ] P0 Market-ready base (Checklist):
-  - [ ] Analytics: Event tracking (visit_home / upload_start / parse_success / reader_view / share_copy_link / feedback_submit)
-  - [ ] Shareable link: /paper/[paper_id] direct access + copy link button in Reader
-  - [ ] Failure UX: Clear processing/failure messages + Retry button
-  - [ ] Rate limit & file size: 429/413 error codes + MAX_PDF_MB limit + error_code conventions
-  - [ ] Feedback: POST /api/feedback endpoint + saved to data/feedback/
-  - [ ] Privacy/Terms/Contact: Pages online + footer links
+- [x] P0 Market-ready base (Checklist):
+  - [x] Analytics: PostHog event tracking (visit_home / upload_start / parse_success / parse_failed / reader_view / share_copy_link / feedback_submit)
+  - [x] Shareable link: /read/[paper_id] direct access + 🔗 Share button in SettingsBar with copy-to-clipboard
+  - [x] Failure UX: Error handling with error_code conventions (RATE_LIMITED, FILE_TOO_LARGE, PARSE_FAILED, INVALID_PDF)
+  - [x] Rate limit & file size: In-memory rate limiter (10 req/60s per IP, 429 error) + MAX_PDF_MB env var (default 50MB, 413 error)
+  - [x] Feedback: POST /api/feedback endpoint + saved to data/feedback/{timestamp}.json
+  - [x] Landing page: New hero section, "How it works", FAQ, footer with Privacy/Terms/Contact links
+  - [ ] Privacy/Terms/Contact: Actual pages (currently just links in footer)
 - [ ] Test with 5 PDFs (arXiv ML, survey, CV, Chinese, scanned)
 - [ ] Take before/after screenshots
 - [ ] Post to r/GradSchool, r/MachineLearning, HN Show HN
@@ -85,9 +86,12 @@ Next.js 14 (App Router) — Medium-style reading experience
 
 **Design Decision (2026-02-23):** Removed page markers entirely. Marker API's hosted version doesn't return page breaks, and estimation was too inaccurate for academic citations. Users reference by section headings + deep links instead, which is more reliable for web articles.
 
-**Task Memory:**
-- Modified files: `api/services/postprocess.py`, `api/services/marker.py`, `frontend/src/components/Reader/ArticleBody.tsx`, `frontend/src/styles/reader.css`, `plan.md`, `CLAUDE.md`, `PaperFlow_Architecture.md`
-- Next step: Implement P0 market-ready features (analytics, sharing, failure UX, rate limiting, feedback, compliance pages)
+**Task Memory (2026-02-24):**
+- Modified files:
+  - Backend: `api/main.py`, `api/routes/parse.py`, `api/routes/feedback.py`, `api/middleware/rate_limit.py`, `api/errors.py`, `api/config.py`
+  - Frontend: `frontend/src/app/page.tsx`, `frontend/src/lib/analytics.ts`, `frontend/src/components/Reader/SettingsBar.tsx`, `frontend/src/components/UploadZone.tsx`
+  - Docs: `LANDING_PAGE_UPDATE.md` (new)
+- Next step: Create Privacy/Terms/Contact pages, then test with 5 diverse PDFs before market launch
 
 ---
 

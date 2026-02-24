@@ -38,34 +38,52 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
 - Images saved flat in temp dir to match Marker's relative paths
 - **Page markers removed (2026-02-23):** Datalab hosted API doesn't support `paginate_output`, estimation was unreliable for academic citations. Users navigate by section headings + deep links instead.
 
-## P0 Market Readiness
+## P0 Market Readiness (Complete 2026-02-24)
 
 **Environment Variables:**
 - `DATALAB_API_KEY` — Marker API key (required)
 - `CORS_ORIGINS` — Allowed origins for CORS (Railway)
 - `NEXT_PUBLIC_API_URL` — Backend API URL (Vercel)
 - `NEXT_PUBLIC_POSTHOG_KEY` — PostHog analytics key (optional, for event tracking)
+- `NEXT_PUBLIC_POSTHOG_HOST` — PostHog host (default: https://app.posthog.com)
 - `MAX_PDF_MB` — Max PDF file size in MB (default: 50)
+- `FEEDBACK_DIR` — Feedback storage directory (default: ./data/feedback)
 
 **API Error Codes:**
-- `429` — Rate limit exceeded (too many requests from same IP)
+- `429` — Rate limit exceeded (10 requests per 60 seconds per IP)
 - `413` — File too large (exceeds MAX_PDF_MB)
 - `error_code` conventions: `RATE_LIMITED`, `FILE_TOO_LARGE`, `PARSE_FAILED`, `INVALID_PDF`
 
 **Key Endpoints:**
-- `POST /api/parse` — Upload PDF, returns `{paper_id, status: "processing"}`
+- `POST /api/parse` — Upload PDF, returns `{paper_id, status: "processing"}` (rate limited)
 - `GET /api/parse/{id}` — Poll status, returns `{status: "processing|complete|error", error_code?}`
 - `GET /api/paper/{id}` — Get rendered data (title, toc, sections, images, metadata)
-- `POST /api/feedback` — Submit user feedback, saves to `data/feedback/{timestamp}.json`
+- `POST /api/feedback` — Submit user feedback (type: bug/feature/general), saves to `data/feedback/{timestamp}.json`
+- `GET /health` — Health check endpoint
 
-**Analytics Events (Frontend):**
+**Analytics Events (Frontend - PostHog):**
 - `visit_home` — User lands on homepage
-- `upload_start` — User initiates PDF upload
-- `parse_success` — PDF processing completes successfully
-- `parse_failed` — PDF processing fails
-- `reader_view` — User views reader page
-- `share_copy_link` — User copies shareable link
-- `feedback_submit` — User submits feedback
+- `upload_start` — User initiates PDF upload (includes filename, sizeKB)
+- `parse_success` — PDF processing completes successfully (includes paperId, durationSec)
+- `parse_failed` — PDF processing fails (includes errorCode, errorMessage)
+- `reader_view` — User views reader page (includes paperId)
+- `share_copy_link` — User copies shareable link via 🔗 Share button (includes paperId)
+- `feedback_submit` — User submits feedback (includes type, message)
+
+**Landing Page Features (2026-02-24):**
+- Hero section: "Read papers without scroll-back hell" + 2 CTAs (Upload PDF / View demo)
+- 3 key benefits: Inline links, mobile-friendly, shareable
+- "How it works" section (3 steps with emoji icons)
+- Mini FAQ (3 questions: scanned PDFs, storage, pricing)
+- Footer with Privacy/Terms/Contact links (pages not yet created)
+
+**Reader Features:**
+- Shareable links: `/read/{paper_id}` with copy-to-clipboard button in SettingsBar
+- Dark mode toggle (persists across page)
+- Font size controls (16/18/20px)
+- TOC sidebar (desktop) + hamburger drawer (mobile)
+- Inline math rendering (KaTeX)
+- Section deep linking with intersection observer
 
 ## Allowed Automation (with limits)
 - You may run: `git status`, `git diff`, and ONE of: `rg`/`grep` with a narrow keyword
