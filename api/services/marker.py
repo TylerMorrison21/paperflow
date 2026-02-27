@@ -48,10 +48,10 @@ async def parse_pdf(pdf_bytes: bytes) -> dict:
 
             if status == "complete":
                 logger.info("Marker API processing complete")
-                markdown = data.get("markdown", "")
-                images = data.get("images", {})
-                metadata = data.get("metadata", {})
-                logger.info(f"Result: markdown_length={len(markdown) if markdown else 0}, images={len(images)}, metadata_keys={list(metadata.keys())}")
+                markdown = data.get("markdown") or ""
+                images = data.get("images") or {}
+                metadata = data.get("metadata") or {}
+                logger.info(f"Result: markdown_length={len(markdown)}, images={len(images)}, metadata_keys={list(metadata.keys())}")
                 return {
                     "markdown": markdown,
                     "images": images,

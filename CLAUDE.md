@@ -4,120 +4,196 @@
 Help me ship the MVP fast with small, safe steps.
 
 ## Project Summary
-**PaperFlow is LIVE and working end-to-end (2026-02-23).**
+**PaperFlow is an async PDF→Markdown pipeline for researchers.**
 
-PaperFlow converts academic PDFs into beautiful, readable web articles — like Medium for research papers.
-Stack: Next.js 14 (Vercel) + FastAPI (Railway) + Marker API (Datalab).
+User drops a PDF + enters email → backend processes via Marker API → delivers a clean
+Markdown ZIP (with images, LaTeX, Obsidian footnotes) to their inbox via Resend.
 
-**Processing time:** Usually tens of seconds to several minutes, depending on PDF complexity and queue.
+The product IS the Markdown quality. There is NO web reader, NO annotation system,
+NO chat. Users consume the output in their own tools (Obsidian, Notion, Zotero).
 
-**Live URLs:**
-- Frontend: https://frontend-9kvi1cyc6-tylermorrison21s-projects.vercel.app
-- Backend: https://pdfreflow-production.up.railway.app
+Stack: Minimal frontend (upload box) + FastAPI backend + Marker API + Resend email.
 
-See `D:/projects/CLAUDE.md` and `D:/projects/plan.md` for full architecture and execution plan.
+## What We Killed (do NOT rebuild)
+- ❌ Web reader UI (no React article rendering, no KaTeX in browser)
+- ❌ TOC sidebar, scroll-spy, settings bar, dark mode, font controls
+- ❌ Frontend polling / progress bars / WebSocket
+- ❌ User registration / login / auth
+- ❌ Highlight & annotation system
+- ❌ Any UI beyond a drag-drop box + email input + "check your inbox" confirmation
+- ❌ [[#^ref-N]] block reference links (replaced by standard footnotes)
 
-**After each deployable task:** Update `plan.md` with progress, modified files, and next step.
-
-## Legacy Architecture (PDFReflow — kept for reference)
+## Architecture
 ```
-app.py                      Streamlit UI (upload → convert → download)
-core/converter.py           Orchestrator — calls marker_client then epub_builder
-core/marker_client.py       Datalab API: upload PDF, poll until complete  ← REUSE in PaperFlow
-core/epub_builder.py        Markdown → Pandoc subprocess → EPUB3
-core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
-.env                        DATALAB_API_KEY (required)
+Browser (minimal HTML)           FastAPI backend              External
+┌─────────────────┐     POST    ┌──────────────────┐        ┌────────────┐
+│ Drag-drop PDF   │────────────▶│ /api/submit      │───────▶│ Marker API │
+│ + email input   │  200 OK     │                  │◀───────│ (Datalab)  │
+│ "Check inbox"   │◀────────────│ Background task: │        └────────────┘
+└─────────────────┘             │ 1. Marker parse  │
+                                │ 2. postprocess   │        ┌────────────┐
+                                │ 3. build ZIP     │───────▶│ Resend API │
+                                │ 4. send email    │        │ (email)    │
+                                └──────────────────┘        └────────────┘
 ```
 
-## What to Reuse in PaperFlow
-- `core/marker_client.py` — Marker API client (upload + poll). Adapt to httpx (async) for FastAPI backend.
+## Project Structure
+```
+D:/Projects/pdfreflow/
+├── CLAUDE.md                    # This file
+├── plan.md                      # Execution plan
+├── .env                         # DATALAB_API_KEY, RESEND_API_KEY
+│
+├── api/                         # FastAPI backend
+│   ├── main.py                  # App entry, CORS, /health
+│   ├── config.py                # Env vars (incl. rate limits)
+│   ├── models.py                # Pydantic schemas
+│   ├── routes/
+│   │   └── submit.py            # POST /api/submit (PDF + email, dedup, rate limits)
+│   └── services/
+│       ├── marker.py            # Async Marker API client (httpx)
+│       ├── postprocess.py       # Markdown enhancement (THE product)
+│       ├── packager.py          # Build ZIP (markdown + images/)
+│       ├── emailer.py           # Send ZIP via Resend API
+│       └── ratelimit.py         # Per-email + global rate limiting
+│
+├── frontend/                    # ONE static HTML page
+│   └── index.html               # Upload box + email input + confirmation
+│
+├── core/                        # Legacy PDFReflow code
+│   └── marker_client.py         # Datalab API client — logic reused in api/services/marker.py
+│
+└── data/                        # Temp storage (gitignored)
+    └── jobs/{job_id}/           # Per-job dir: input.pdf, paper.md, images/, {title}.zip
+```
 
-## Key Decisions (still relevant)
-- All PDFs go through Marker API — no local text extraction
-- `_unwrap_lines()`: purge invisible chars → NLP smart_merge → buffer
-- Images saved flat in temp dir to match Marker's relative paths
-- **Page markers removed (2026-02-23):** Datalab hosted API doesn't support `paginate_output`, estimation was unreliable for academic citations. Users navigate by section headings + deep links instead.
+## Core Pipeline (postprocess.py — this IS the product)
+```python
+def postprocess(raw_markdown: str, images: dict, metadata: dict) -> str:
+    md = raw_markdown
+    md = fix_latex_delimiters(md)       # \[..\] → $$..$$, \(..\) → $..$
+    md = clean_headers_footers(md)      # Remove repeated header/footer lines
+    md = convert_to_footnotes(md)       # [N] / [[#Reference N]] → [^N] footnotes
+    md = linkify_figures(md)            # [Fig. 3] → [[#^fig-3|Fig. 3]]
+    md = linkify_tables(md)             # [Table 2] → [[#^tab-2|Table 2]]
+    md = inject_frontmatter(md, metadata)  # YAML header: title, authors, date, hash
+    return md
+```
 
-## P0 Market Readiness (Complete 2026-02-24)
+### postprocess.py — Detailed Spec
 
-**Environment Variables:**
-- `DATALAB_API_KEY` — Marker API key (required)
-- `CORS_ORIGINS` — Allowed origins for CORS (Railway)
-- `NEXT_PUBLIC_API_URL` — Backend API URL (Vercel)
-- `NEXT_PUBLIC_POSTHOG_KEY` — PostHog analytics key (optional, for event tracking)
-- `NEXT_PUBLIC_POSTHOG_HOST` — PostHog host (default: https://app.posthog.com)
-- `MAX_PDF_MB` — Max PDF file size in MB (default: 50)
-- `FEEDBACK_DIR` — Feedback storage directory (default: ./data/feedback)
+**fix_latex_delimiters(md)**:
+- `\[ ... \]` → `$$ ... $$`
+- `\( ... \)` → `$ ... $`
+- `\begin{equation}...\end{equation}` → `$$ ... $$`
+- `\begin{align}...\end{align}` → `$$ ... $$`
+- Do NOT touch already-correct `$...$` or `$$...$$`
 
-**API Error Codes:**
-- `429` — Rate limit exceeded (10 requests per 60 seconds per IP)
-- `413` — File too large (exceeds MAX_PDF_MB)
-- `error_code` conventions: `RATE_LIMITED`, `FILE_TOO_LARGE`, `PARSE_FAILED`, `INVALID_PDF`
+**convert_to_footnotes(md)** (replaces old linkify_references):
+- Finds the references section using a 3-level fallback:
+  1. Heading: `## References`, `# Bibliography`, `**Works Cited**`, plain `References`, etc.
+  2. Bare list (PRL/physics papers with no heading): `- [1] Author...` or `[1] Author...`
+  3. Marker wiki-link format: `- [[#Reference 1]] Author...`
+- Parses reference entries (handles `[N]`, `- [N]`, and `- [[#Reference N]]` formats)
+- Protects LaTeX ($...$, $$...$$) and code blocks from citation replacement
+- Body: `[N]` → `[^N]`, `[[#Reference N]]` → `[^N]`, `[1, 2, 3]` → `[^1][^2][^3]`, `[1-3]` → `[^1][^2][^3]`, `[1–3]` (en-dash) → `[^1][^2][^3]`
+- Never replaces `[0]` (array index, not citation)
+- References section: `[^N]: Author, Title, Journal, Year.`
+- Obsidian natively supports footnote hover preview, click-to-scroll, and ↩ back-navigation
 
-**Key Endpoints:**
-- `POST /api/parse` — Upload PDF, returns `{paper_id, status: "processing"}` (rate limited)
-- `GET /api/parse/{id}` — Poll status, returns `{status: "processing|complete|error", error_code?}`
-- `GET /api/paper/{id}` — Get rendered data (title, toc, sections, images, metadata)
-- `POST /api/feedback` — Submit user feedback (type: bug/feature/general), saves to `data/feedback/{timestamp}.json`
-- `GET /health` — Health check endpoint
+**linkify_figures(md)**:
+- Find `[Fig. N]`, `[Figure N]`, `(Fig. N)`, `(Figure N)` in text
+- Replace with `[[#^fig-N|Fig. N]]` (Obsidian block reference link)
+- Add `^fig-N` anchor to figure caption lines
 
-**Analytics Events (Frontend - PostHog):**
-- `visit_home` — User lands on homepage
-- `upload_start` — User initiates PDF upload (includes filename, sizeKB)
-- `parse_success` — PDF processing completes successfully (includes paperId, durationSec)
-- `parse_failed` — PDF processing fails (includes errorCode, errorMessage)
-- `reader_view` — User views reader page (includes paperId)
-- `share_copy_link` — User copies shareable link via 🔗 Share button (includes paperId)
-- `feedback_submit` — User submits feedback (includes type, message)
-- `export_markdown` — User exports paper to Markdown (includes paperId)
-- `inline_popover` — User clicks citation/figure/table link (includes paperId, targetType)
-- `text_highlight` — User highlights text (includes paperId, color)
-- `export_highlights` — User exports highlights (includes paperId, count)
-- `copy_with_citation` — User copies text with auto-citation (includes paperId) - tracks viral spread
+**linkify_tables(md)**:
+- Same pattern: `[Table N]` → `[[#^tab-N|Table N]]`
+- Add `^tab-N` anchor to table caption lines
 
-**Landing Page Features (2026-02-24):**
-- Hero section: "Read papers without scroll-back hell" + 2 CTAs (Upload PDF / View demo)
-- 4 key benefits: Inline citation/figure popovers, copy with auto-citation (viral), text highlighting + export, shareable links
-- "How it works" section (3 steps with emoji icons)
-- Mini FAQ (3 questions: scanned PDFs, storage, pricing)
-- Footer with Privacy/Terms/Contact links (pages live)
-- Trust signal: 🔒 "Private & secure. We never use your data to train AI." below upload box
+**inject_frontmatter(md, metadata)**:
+- Prepend YAML front-matter block with title, authors, source, extracted date, hash, tags
 
-**Reader Features (The Soul of the MVP):**
-- **Inline popovers**: Click any citation/figure/table link to view inline without losing your place
-  - Smooth 0.15s fade-in animation, no delay
-  - Auto-positions to avoid viewport edges
-  - Close via click outside, Escape key, or X button
-  - Detects targets by ID patterns (fig-, table-, ref-) or HTML tags
-  - Section headings still scroll normally
-  - Transforms static PDFs into interactive semantic networks
-- **Copy with Citation** (Viral PLG growth hack):
-  - Every copy operation automatically appends: "—\nExtracted via PaperFlow.app\n[Title]\n[Link]"
-  - Silent attribution spreads product virally in Slack/Discord/email
-  - Solves real pain: professionals need to cite sources anyway
-  - Highly targeted exposure: reaches other researchers/professionals
-  - Zero friction: users don't need to do anything
-  - Classic legal tech/academic tool feature
-- **Text highlighting + export** (Ultimate lean startup feature):
-  - Select text → color picker toolbar (4 colors: yellow, green, blue, pink)
-  - Highlights stored in localStorage (no auth/database/sync needed)
-  - One-click export: "💡 Export N Highlights" button appears when highlights exist
-  - Downloads clean Markdown with quotes + context
-  - Zero-friction onboarding: no registration required
-  - Perfect for Obsidian/Notion workflow
-  - Irresistible retention hook for hardcore productivity users
-- Markdown export: 📥 Export MD button downloads clean .md file for Obsidian/Notion
-- Shareable links: `/read/{paper_id}` with copy-to-clipboard button in SettingsBar
-- Dark mode toggle (persists across page)
-- Font size controls (16/18/20px)
-- TOC sidebar (desktop) + hamburger drawer (mobile)
-- Inline math rendering (KaTeX)
-- Section deep linking with intersection observer
+**clean_headers_footers(md)**:
+- Find lines that repeat identically across the document (>3 times) — remove them
+- Remove standalone page number lines
 
-## Allowed Automation (with limits)
-- You may run: `git status`, `git diff`, and ONE of: `rg`/`grep` with a narrow keyword
-- You may read at most 3 files per task (ask before reading more)
-- Do NOT run `ls -R`, `find`, `tree`, or `git log --all`
+## ZIP Structure (packager.py)
+```
+{title}.zip (flat — no wrapper folder)
+├── paper.md          # Enhanced Markdown with frontmatter + footnotes
+└── images/
+    ├── fig1.jpg
+    ├── fig2.png
+    └── ...
+```
+- ZIP filename = sanitized paper title
+- No wrapper folder inside ZIP — unzips directly to paper.md + images/
+- Image references in markdown point to `images/filename.jpg` (relative path)
+- Handles Marker's base64 images including data URI prefix stripping
+- User drags contents into Obsidian vault → everything just works
+
+## Rate Limiting & Anti-Abuse
+- **Per-email**: 3 papers/day per email address
+- **Global daily**: 300 submissions/day (handles Reddit-scale traffic spikes)
+- **Monthly pages**: 50,000 pages/month
+- **Graceful degradation**: 429 responses show friendly messages, not error codes
+  - Per-email: "You've reached your daily limit of 3 papers. Come back tomorrow!"
+  - Global: "PaperFlow is experiencing high demand. Please try again in a few hours!"
+- **Frontend**: 429s shown in warm yellow (#c9a227), other errors in red
+
+## Dedup (SHA-256 Hash Cache)
+- PDF bytes → SHA-256 hash → check in-memory cache
+- Cache hit with valid output (has footnotes + valid title) → skip Marker API, re-email cached ZIP
+- Stale cache (no footnotes or "Untitled" title) → evict and reprocess
+- Cache rebuilt from disk on startup by scanning existing job dirs
+- Cached submissions skip rate limit counting
+
+## Title Extraction (3 fallbacks)
+1. Marker API metadata.title (skip if contains "untitled")
+2. First H1 heading (`# ...`) in raw markdown
+3. Uploaded filename stem (spaces cleaned)
+
+## Email (emailer.py)
+- Subject: "Your paper is ready: {title}"
+- Attachment: `{sanitized_title}.zip`
+- HTML body: PaperFlow branded template with paper title + feature checklist
+- Sent via Resend API
+
+## Key Technical Rules
+1. **All processing is async** — POST /api/submit returns 200 immediately
+2. **File-based job storage** — `data/jobs/{job_id}/` per job
+3. **Single worker** — `uvicorn --workers 1` on Railway
+4. **Email via Resend** — free tier: 100 emails/day (resend.com, Python SDK)
+5. **No database** — file system + JSON for rate limiting
+6. **No user accounts** — email is the only identifier
+
+## Deployment
+- **Backend**: Railway (https://paperflow-production-daf5.up.railway.app)
+  - Deploy: `cd D:/projects/pdfreflow && railway up --detach`
+- **Frontend**: Vercel (https://www.paperflowing.com)
+  - Deploy: `cd D:/projects/pdfreflow/frontend && vercel --prod`
+
+## Environment Variables
+```bash
+DATALAB_API_KEY=<marker api key>
+MARKER_API_URL=https://www.datalab.to/api/v1/marker
+RESEND_API_KEY=<resend api key>
+FROM_EMAIL=delivery@paperflowing.com
+CORS_ORIGINS=*
+DATA_DIR=./data/jobs
+DAILY_SUBMISSION_LIMIT=300
+MONTHLY_PAGE_LIMIT=50000
+PER_EMAIL_DAILY_LIMIT=3
+```
+
+## Legacy (PDFReflow — kept for reference, do not modify)
+```
+app.py                      Streamlit UI
+core/converter.py           Orchestrator
+core/marker_client.py       Datalab API client (reuse logic)
+core/epub_builder.py        Pandoc → EPUB3
+core/epub_style.css         Minimal CSS
+```
 
 ## Before Editing
 1. Say what you plan to change (max 5 bullet points)
@@ -127,9 +203,9 @@ core/epub_style.css         Minimal CSS for Pandoc (no word-break overrides)
 - Prefer showing the exact edit (old → new)
 - Keep explanations short (max 6 lines)
 
-## Code Style (PaperFlow backend)
+## Code Style
 - Python 3.10 (Windows, CPython)
-- httpx (async) for HTTP — NOT urllib.request (PaperFlow uses FastAPI async)
+- httpx (async) for HTTP
 - Small functions, minimal refactors
 
 ## Task Memory

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PaperFlow</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: 'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 0.875rem;
+      margin-bottom: 36px;
+      line-height: 1.5;
+    }
+
+    #dropzone {
+      border: 1.5px dashed #333;
+      border-radius: 6px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 16px;
+      font-size: 0.875rem;
+      color: #666;
+    }
+
+    #dropzone.dragover {
+      border-color: #e0e0e0;
+      background: #111;
+      color: #e0e0e0;
+    }
+
+    #dropzone.has-file {
+      border-color: #555;
+      color: #e0e0e0;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    .file-hint {
+      font-size: 0.75rem;
+      color: #444;
+      margin-top: 6px;
+    }
+
+    input[type="email"] {
+      width: 100%;
+      background: #111;
+      border: 1.5px solid #333;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 0.875rem;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="email"]:focus {
+      border-color: #666;
+    }
+
+    input[type="email"]::placeholder {
+      color: #444;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      background: #e0e0e0;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button[type="submit"]:hover:not(:disabled) {
+      background: #fff;
+    }
+
+    button[type="submit"]:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    #success {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    #success .check {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+
+    #success p {
+      color: #888;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+
+    #error-msg {
+      color: #e05c5c;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    #error-msg.soft {
+      color: #c9a227;
+    }
+
+    .progress-text {
+      color: #666;
+      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PaperFlow</h1>
+    <p class="subtitle">Drop a PDF. Get Obsidian-ready Markdown in your inbox.</p>
+
+    <div id="form-wrapper">
+      <form id="upload-form">
+        <div id="dropzone">
+          <div id="dropzone-label">Drag &amp; drop your PDF here<br><span class="file-hint">or click to browse</span></div>
+          <input type="file" id="file-input" accept=".pdf" />
+        </div>
+
+        <input type="email" id="email-input" placeholder="your@email.com" required />
+
+        <button type="submit" id="submit-btn">Process</button>
+        <div id="error-msg"></div>
+        <div class="progress-text" id="progress-text">Uploading…</div>
+      </form>
+    </div>
+
+    <div id="success" hidden>
+      <div class="check">✓</div>
+      <p>Processing started.<br>Check your inbox in 1–2 minutes.</p>
+    </div>
+  </div>
+
+  <script>
+    const dropzone    = document.getElementById('dropzone');
+    const fileInput   = document.getElementById('file-input');
+    const form        = document.getElementById('upload-form');
+    const submitBtn   = document.getElementById('submit-btn');
+    const errorMsg    = document.getElementById('error-msg');
+    const progressTxt = document.getElementById('progress-text');
+    const formWrapper = document.getElementById('form-wrapper');
+    const success     = document.getElementById('success');
+
+    let selectedFile = null;
+
+    // Click dropzone → open file picker
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    // Drag & drop
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    ['dragleave', 'dragend'].forEach(evt =>
+      dropzone.addEventListener(evt, () => dropzone.classList.remove('dragover'))
+    );
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.toLowerCase().endsWith('.pdf')) {
+        setFile(file);
+      } else {
+        showError('Only PDF files are accepted.');
+      }
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      dropzone.classList.add('has-file');
+      document.getElementById('dropzone-label').textContent = file.name;
+      clearError();
+    }
+
+    function showError(msg, soft = false) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+      errorMsg.classList.toggle('soft', soft);
+    }
+
+    function clearError() {
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '';
+      errorMsg.classList.remove('soft');
+    }
+
+    // Submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      if (!selectedFile) {
+        showError('Please select a PDF file.');
+        return;
+      }
+
+      const email = document.getElementById('email-input').value.trim();
+      if (!email) {
+        showError('Please enter your email address.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      progressTxt.style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('email', email);
+
+      try {
+        const res = await fetch('https://paperflow-production-daf5.up.railway.app/api/submit', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          formWrapper.hidden = true;
+          success.hidden = false;
+        } else {
+          const data = await res.json().catch(() => ({}));
+          const msg = data.detail || `Something went wrong. Please try again.`;
+          showError(msg, res.status === 429);
+          submitBtn.disabled = false;
+          progressTxt.style.display = 'none';
+        }
+      } catch (err) {
+        showError('Network error. Please check your connection and try again.');
+        submitBtn.disabled = false;
+        progressTxt.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

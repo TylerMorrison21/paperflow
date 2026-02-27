@@ -1,8 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes.parse import router as parse_router
-from api.routes.feedback import router as feedback_router
+from api.routes.submit import router as submit_router
 from api.config import CORS_ORIGINS
 
 # Configure logging
@@ -11,7 +10,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-app = FastAPI(title="PaperFlow API")
+app = FastAPI(title="PaperFlow API - Async Markdown Pipeline")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,9 +19,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(parse_router)
-app.include_router(feedback_router)
+app.include_router(submit_router)
+
+@app.get("/")
+def root():
+    return {
+        "service": "paperflow",
+        "ok": True,
+        "health": "/health",
+        "docs": "/docs"
+    }
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok"}
