@@ -22,6 +22,7 @@ Stack: Minimal frontend (upload box) + FastAPI backend + Marker API + Resend ema
 - ❌ Highlight & annotation system
 - ❌ Any UI beyond a drag-drop box + email input + "check your inbox" confirmation
 - ❌ [[#^ref-N]] block reference links (replaced by standard footnotes)
+- ❌ Generous free tier (playground capped at 5 pages — demo only)
 
 ## Architecture
 ```
@@ -49,7 +50,8 @@ D:/Projects/pdfreflow/
 │   ├── config.py                # Env vars (incl. rate limits)
 │   ├── models.py                # Pydantic schemas
 │   ├── routes/
-│   │   └── submit.py            # POST /api/submit (PDF + email, dedup, rate limits)
+│   │   ├── submit.py            # POST /api/submit (PDF + email, dedup, rate limits)
+│   │   └── jobs.py              # GET /api/jobs/{job_id}/status + /result
 │   └── services/
 │       ├── marker.py            # Async Marker API client (httpx)
 │       ├── postprocess.py       # Markdown enhancement (THE product)
@@ -59,6 +61,12 @@ D:/Projects/pdfreflow/
 │
 ├── frontend/                    # ONE static HTML page
 │   └── index.html               # Upload box + email input + confirmation
+│
+├── mcp-server/                  # MCP Server (paperflow-mcp on npm)
+│   ├── package.json
+│   ├── README.md
+│   └── src/
+│       └── index.js             # StdioServerTransport, convert_pdf tool
 │
 ├── core/                        # Legacy PDFReflow code
 │   └── marker_client.py         # Datalab API client — logic reused in api/services/marker.py
@@ -133,9 +141,10 @@ def postprocess(raw_markdown: str, images: dict, metadata: dict) -> str:
 - User drags contents into Obsidian vault → everything just works
 
 ## Rate Limiting & Anti-Abuse
+- **Page limit**: 5 pages max per PDF (playground is a quality demo, not free conversion)
 - **Per-email**: 3 papers/day per email address
 - **Global daily**: 300 submissions/day (handles Reddit-scale traffic spikes)
-- **Monthly pages**: 50,000 pages/month
+- **Monthly pages**: 8,000 pages/month
 - **Graceful degradation**: 429 responses show friendly messages, not error codes
   - Per-email: "You've reached your daily limit of 3 papers. Come back tomorrow!"
   - Global: "PaperFlow is experiencing high demand. Please try again in a few hours!"
@@ -173,6 +182,23 @@ def postprocess(raw_markdown: str, images: dict, metadata: dict) -> str:
 - **Frontend**: Vercel (https://www.paperflowing.com)
   - Deploy: `cd D:/projects/pdfreflow/frontend && vercel --prod`
 
+## Product Positioning
+- **Playground** (paperflowing.com) = free demo, max 5 pages
+- **MCP Server** (paperflow-mcp) = primary distribution channel, integrates into Claude Desktop workflow
+- **API** (future) = batch processing for enterprise
+- Target customers: EdTech, academic tool builders, research infrastructure teams
+- All messaging funnels heavy users to api@paperflowing.com
+
+## MCP Server
+- Location: `mcp-server/` directory
+- NPM package: `paperflow-mcp` (current: v0.1.1)
+- Tool: `convert_pdf` — accepts PDF URL or base64; returns Markdown with metadata header
+- Calls backend `POST /api/submit` + `GET /api/jobs/{job_id}/status` + `/result`
+- Email field always set to `mcp@paperflowing.com` — backend detects `MCP_EMAIL_PREFIX = "mcp@"` and skips Resend
+- No auth required (rate limited by backend)
+- Stdout is JSON-RPC only; all logs via `console.error()`
+- `jobs.py` rejects `job_id` containing `..`, `/`, or `\` (path traversal protection)
+
 ## Environment Variables
 ```bash
 DATALAB_API_KEY=<marker api key>
@@ -182,7 +208,7 @@ FROM_EMAIL=delivery@paperflowing.com
 CORS_ORIGINS=*
 DATA_DIR=./data/jobs
 DAILY_SUBMISSION_LIMIT=300
-MONTHLY_PAGE_LIMIT=50000
+MONTHLY_PAGE_LIMIT=8000
 PER_EMAIL_DAILY_LIMIT=3
 ```
 

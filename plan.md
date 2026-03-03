@@ -24,7 +24,7 @@ api/
     ├── postprocess.py    # THE product — Markdown enhancement
     ├── packager.py       # Build flat ZIP: paper.md + images/
     ├── emailer.py        # Send ZIP via Resend API
-    └── ratelimit.py      # Per-email (3/day) + global (300/day) + monthly pages (50k)
+    └── ratelimit.py      # Per-email (3/day) + global (300/day) + monthly pages (8k)
 ```
 
 ### 1b. POST /api/submit [✓]
@@ -85,7 +85,9 @@ Key features:
 ### 1f. Rate Limiting & Anti-Abuse [✓]
 
 - Per-email: 3/day
-- Global: 300/day, 50k pages/month
+- Global: 300/day, 8k pages/month
+- **File size limit**: 15MB max (400 error, checked client-side + server-side)
+- **Page limit**: 5 pages max per PDF — oversize PDFs get a branded email explaining the limit + Pro engine pitch
 - Graceful 429 messages (no "Error" shown)
 - Frontend: yellow for rate limits, red for real errors
 - Cached/dedup submissions bypass rate limits
@@ -135,6 +137,13 @@ Design:
 - [✓] 2026-02-27: `convert_to_footnotes` failed silently on PRL/physics papers — those have no
   "References" heading; Marker outputs a bare `- [1] Author...` list. Fixed by adding a fallback
   that detects `^(?:-\s*)?(?:\[\[#Reference 1\]\]|\[1\]\s+\S)` as the section start.
+- [✓] 2026-02-28: Added file size limit (15MB) + page limit (5 pages). Oversize files rejected
+  at upload; overlong PDFs get a branded "Pro engine" email. Modified: config.py, submit.py,
+  emailer.py, index.html. Deployed to Railway + Vercel.
+- [✓] 2026-02-28: Pre-Marker page gate — pypdf counts pages server-side before calling Marker API.
+  PDFs >5 pages now skip Marker entirely (saves API credits), send limit email instead.
+  Client-side pdf.js check blocks upload immediately. Modified: submit.py, index.html,
+  requirements.txt (+pypdf). Deployed to Railway + Vercel.
 
 ---
 
@@ -147,6 +156,30 @@ Design:
 | P1 | YAML frontmatter with Dataview-compatible fields | Obsidian power users |
 | P2 | MCP Server endpoint | AI agent integration |
 | P2 | Stripe payment ($5/month or $0.50/paper) | Revenue |
+
+---
+
+## Product Pivot — MCP-First Strategy (2026-03)
+
+### Completed
+- [✓] Free page limit: 50 → 5 (playground = quality demo)
+- [✓] Landing page: enterprise CTA + MCP install block
+- [✓] Oversize email: API sales pitch
+- [✓] MCP Server MVP (mcp-server/) — published as paperflow-mcp@0.1.1
+- [✓] Backend: /api/jobs/{job_id}/status + /result endpoints (jobs.py, path traversal protected)
+- [✓] MCP email bypass — mcp@paperflowing.com skips Resend, saves quota
+- [✓] MCP tool description + npm package description updated for search indexing
+- [✓] Frontend MCP section copy updated ("Stop sending PDF images to Claude")
+- [✓] Deploy updated frontend (Vercel) + backend (Railway)
+
+### In Progress
+- [ ] Test MCP Server end-to-end with Claude Desktop
+- [ ] Submit to MCP Registry/awesome-mcp-servers
+
+### 30-Day Validation Sprint
+- [ ] Cold outreach: 30 targets (GitHub academic tools → LinkedIn EdTech)
+- [ ] Success: 2-3 ask about pricing/integration → continue
+- [ ] Kill: 0 interest after 30 attempts → shelve project
 
 ---
 

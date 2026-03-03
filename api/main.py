@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes.submit import router as submit_router
+from api.routes.jobs import router as jobs_router
 from api.config import CORS_ORIGINS
 
 # Configure logging
@@ -20,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(submit_router)
+app.include_router(jobs_router)
 
 @app.get("/")
 def root():

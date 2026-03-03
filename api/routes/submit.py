@@ -1,15 +1,18 @@
+import io
 import uuid
 import hashlib
 import logging
+import re
 import zipfile
 from pathlib import Path
+from pypdf import PdfReader
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
 from api.models import SubmitResponse
-from api.config import DATA_DIR
+from api.config import DATA_DIR, MAX_FILE_SIZE_MB, MAX_PAGES, CONTACT_EMAIL, MCP_EMAIL_PREFIX
 from api.services.marker import parse_pdf
 from api.services.postprocess import postprocess
 from api.services.packager import build_zip
-from api.services.emailer import send_paper_email
+from api.services.emailer import send_paper_email, send_page_limit_email, send_failure_email
 from api.services.ratelimit import check_daily_limit, check_monthly_pages, check_email_limit, record_submission
 
 router = APIRouter()
@@ -47,6 +50,26 @@ def _find_cached_zip(file_hash: str) -> Path | None:
     zip_files = list(job_dir.glob("*.zip"))
     if zip_files and zip_files[0].exists():
         return zip_files[0]
+    return None
+
+
+def _extract_cached_title(md_content: str) -> str | None:
+    """Extract title from YAML frontmatter first, then fallback to first H1."""
+    if md_content.startswith("---"):
+        lines = md_content.splitlines()
+        for line in lines[1:]:
+            if line.strip() == "---":
+                break
+            if line.lower().startswith("title:"):
+                value = line.split(":", 1)[1].strip().strip('"').strip("'")
+                if value:
+                    return value
+
+    for line in md_content.splitlines():
+        if line.startswith("# "):
+            candidate = line[2:].strip()
+            if candidate:
+                return candidate
     return None
 
 
@@ -88,18 +111,16 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
             with zipfile.ZipFile(cached_zip, 'r') as zf:
                 for name in zf.namelist():
                     if name.endswith('.md'):
-                        md_content = zf.read(name).decode('utf-8')
-                        has_footnotes = '[^1]:' in md_content
-                        for line in md_content.splitlines():
-                            if line.startswith('# '):
-                                title = line[2:].strip()
-                                break
+                        md_content = zf.read(name).decode('utf-8', errors='ignore')
+                        has_footnotes = re.search(r'\[\^\d+\]:', md_content) is not None
+                        title = _extract_cached_title(md_content)
                         break
 
             if title and has_footnotes and 'untitled' not in title.lower():
                 logger.info(f"Job {job_id}: Cache hit for {file_hash[:12]}…")
-                await send_paper_email(email, title, cached_zip)
-                logger.info(f"Job {job_id}: Cached result emailed to {email}")
+                if not email.startswith(MCP_EMAIL_PREFIX):
+                    await send_paper_email(email, title, cached_zip)
+                    logger.info(f"Job {job_id}: Cached result emailed to {email}")
                 return
             else:
                 # Stale cache — evict and reprocess
@@ -122,7 +143,12 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
         logger.info(f"Job {job_id}: Marker API complete")
 
         # Record usage (page count from metadata, fallback to 1)
-        page_count = metadata.get("pages", 1)
+        raw_page_count = metadata.get("pages", 1)
+        try:
+            page_count = max(int(raw_page_count), 1)
+        except (TypeError, ValueError):
+            page_count = 1
+
         record_submission(page_count, email=email)
         logger.info(f"Job {job_id}: Recorded {page_count} pages")
 
@@ -148,15 +174,22 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
         # Register in hash cache
         _hash_cache[file_hash] = str(job_dir)
 
-        # 6. Send email
-        logger.info(f"Job {job_id}: Sending email to {email}")
-        await send_paper_email(email, title, zip_path)
-        logger.info(f"Job {job_id}: Email sent successfully")
+        # 6. Send email (skipped for MCP submissions)
+        if email.startswith(MCP_EMAIL_PREFIX):
+            logger.info(f"Job {job_id}: MCP submission — skipping email")
+        else:
+            logger.info(f"Job {job_id}: Sending email to {email}")
+            await send_paper_email(email, title, zip_path)
+            logger.info(f"Job {job_id}: Email sent successfully")
 
     except Exception as e:
         logger.error(f"Job {job_id}: Failed with error: {e}", exc_info=True)
-        # TODO: Send failure email to user
-        raise
+        if not email.startswith(MCP_EMAIL_PREFIX):
+            try:
+                await send_failure_email(email, original_filename)
+            except Exception:
+                logger.error(f"Job {job_id}: Failed to send failure email to {email}", exc_info=True)
+        return
 
 
 @router.post("/api/submit", response_model=SubmitResponse)
@@ -179,12 +212,32 @@ async def submit_pdf(
     job_dir = Path(DATA_DIR) / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    # Read PDF bytes and compute hash for dedup
+    # Read PDF bytes and check file size
     pdf_bytes = await file.read()
+    max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+    if len(pdf_bytes) > max_bytes:
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.")
+
+    # Count pages before calling Marker API
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        page_count = len(reader.pages)
+    except Exception:
+        page_count = 0  # let Marker handle corrupt PDFs
+
+    if page_count > MAX_PAGES:
+        logger.info(f"Job {job_id}: {page_count} pages exceeds limit of {MAX_PAGES}, sending limit email")
+        background_tasks.add_task(send_page_limit_email, email, file.filename, page_count)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Free playground is limited to {MAX_PAGES} pages for quality testing. For full documents, batch processing, or API access, contact {CONTACT_EMAIL}"
+        )
+
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    cached_zip = _find_cached_zip(file_hash)
 
     # Only enforce rate limits for new PDFs (not cached duplicates)
-    if not _find_cached_zip(file_hash):
+    if not cached_zip:
         allowed, _ = check_email_limit(email)
         if not allowed:
             raise HTTPException(status_code=429, detail="You've reached your daily limit of 3 papers. Come back tomorrow for more!")
@@ -193,11 +246,11 @@ async def submit_pdf(
         if not allowed:
             raise HTTPException(status_code=429, detail="PaperFlow is experiencing high demand right now. Please try again in a few hours — we'll be ready for you!")
 
-        allowed, _ = check_monthly_pages()
+        allowed, _ = check_monthly_pages(page_count)
         if not allowed:
             raise HTTPException(status_code=429, detail="PaperFlow is experiencing high demand right now. Please try again in a few hours — we'll be ready for you!")
 
-    logger.info(f"Job {job_id}: Received PDF ({len(pdf_bytes)} bytes) for {email} [cached={_find_cached_zip(file_hash) is not None}]")
+    logger.info(f"Job {job_id}: Received PDF ({len(pdf_bytes)} bytes) for {email} [cached={cached_zip is not None}]")
 
     # Start background processing
     background_tasks.add_task(process_job, job_id, pdf_bytes, email, file.filename, file_hash)

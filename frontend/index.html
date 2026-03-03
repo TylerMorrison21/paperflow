@@ -161,6 +161,9 @@
 
     <div id="form-wrapper">
       <form id="upload-form">
+        <p style="color: #555; font-size: 0.75rem; text-align: center; margin-bottom: 0.5rem;">
+          Free Playground &middot; 5 pages max &middot; Quality preview
+        </p>
         <div id="dropzone">
           <div id="dropzone-label">Drag &amp; drop your PDF here<br><span class="file-hint">or click to browse</span></div>
           <input type="file" id="file-input" accept=".pdf" />
@@ -174,13 +177,80 @@
       </form>
     </div>
 
+    <div style="margin-top: 3rem; padding: 2rem; border: 1px solid #1a1a2e; border-radius: 8px; background: #0d0d1a;">
+      <h3 style="color: #7c8aff; font-size: 1.1rem; margin: 0 0 0.3rem 0; font-weight: 600;">
+        Use with Claude Desktop
+      </h3>
+      <p style="color: #8a8a8a; font-size: 0.85rem; margin: 0 0 0.3rem 0;">
+        Stop sending PDF images to Claude. Convert to structured Markdown first.
+      </p>
+      <p style="color: #6a6a6a; font-size: 0.8rem; margin: 0 0 1.2rem 0;">
+        ~80% fewer tokens &middot; LaTeX preserved &middot; tables intact &middot; citations linked
+      </p>
+      <pre style="background: #111; border: 1px solid #222; border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; color: #a0a0a0; line-height: 1.5;"><code>{
+  "mcpServers": {
+    "paperflow": {
+      "command": "npx",
+      "args": ["-y", "paperflow-mcp"]
+    }
+  }
+}</code></pre>
+      <p style="color: #555; font-size: 0.78rem; margin-top: 0.75rem;">
+        Add to claude_desktop_config.json → restart → ask Claude to analyze any PDF.
+      </p>
+    </div>
+
+    <p class="social-proof" style="
+      color: #666;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 2rem;
+      letter-spacing: 0.02em;
+    ">
+      Over 10,000 pages processed for researchers worldwide.
+    </p>
+
+    <div class="enterprise-cta" style="
+      text-align: center;
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border: 1px solid #222;
+      border-radius: 8px;
+      background: #0f0f0f;
+    ">
+      <p style="color: #999; font-size: 0.9rem; margin: 0 0 0.5rem 0;">
+        Need high-volume processing?
+      </p>
+      <p style="color: #ccc; font-size: 1rem; margin: 0 0 1rem 0;">
+        <strong>API Access</strong> &middot; <strong>Batch Processing</strong> &middot; <strong>Self-Hosted Docker Deployment</strong>
+      </p>
+      <p style="color: #7c8aff; font-size: 0.95rem; margin: 0;">
+        <a href="mailto:support@paperflowing.com" style="color: #7c8aff;">support@paperflowing.com</a>
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; border-top: 1px solid #1a1a1a;">
+      <p style="color: #555; font-size: 0.8rem; margin: 0 0 0.3rem 0;">
+        Over 10,000 pages processed for researchers worldwide.
+      </p>
+      <p style="color: #777; font-size: 0.85rem; margin: 0;">
+        High-volume API &middot; Batch processing &middot; Self-hosted Docker &middot;
+        <a href="mailto:api@paperflowing.com" style="color: #7c8aff; text-decoration: none;">Contact API Sales →</a>
+      </p>
+    </div>
+
     <div id="success" hidden>
       <div class="check">✓</div>
       <p>Processing started.<br>Check your inbox in 1–2 minutes.</p>
     </div>
   </div>
 
-  <script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs" type="module"></script>
+  <script type="module">
+    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
+
+    const MAX_PAGES = 5;
     const dropzone    = document.getElementById('dropzone');
     const fileInput   = document.getElementById('file-input');
     const form        = document.getElementById('upload-form');
@@ -220,7 +290,25 @@
       }
     });
 
-    function setFile(file) {
+    async function setFile(file) {
+      const maxSize = 15 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showError('File too large. Maximum size is 15MB.');
+        return;
+      }
+
+      // Count pages client-side
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        if (pdf.numPages > MAX_PAGES) {
+          showError(`Free playground is limited to ${MAX_PAGES} pages. For full documents and API access, contact api@paperflowing.com`, true);
+          return;
+        }
+      } catch (err) {
+        // If pdf.js can't read it, let the server handle validation
+      }
+
       selectedFile = file;
       dropzone.classList.add('has-file');
       document.getElementById('dropzone-label').textContent = file.name;

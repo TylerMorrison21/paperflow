@@ -1,7 +1,14 @@
 import re
+import html
 import resend
 from pathlib import Path
-from api.config import RESEND_API_KEY, FROM_EMAIL
+from api.config import RESEND_API_KEY, FROM_EMAIL, CONTACT_EMAIL
+
+
+def _resolve_from_header() -> str:
+    if "<" in FROM_EMAIL and ">" in FROM_EMAIL:
+        return FROM_EMAIL
+    return f"PaperFlow <{FROM_EMAIL}>"
 
 
 async def send_paper_email(to_email: str, paper_title: str, zip_path: Path):
@@ -90,7 +97,8 @@ async def send_paper_email(to_email: str, paper_title: str, zip_path: Path):
     safe_name = re.sub(r'[<>:"/\\|?*]', '', paper_title).strip()[:100]
 
     params = {
-        "from": "PaperFlow <delivery@paperflowing.com>",
+        "from": _resolve_from_header(),
+        "reply_to": CONTACT_EMAIL,
         "to": [to_email],
         "subject": f"Your paper is ready: {paper_title}",
         "html": html_body,
@@ -100,6 +108,108 @@ async def send_paper_email(to_email: str, paper_title: str, zip_path: Path):
                 "content": list(zip_content)
             }
         ]
+    }
+
+    resend.Emails.send(params)
+
+
+async def send_page_limit_email(to_email: str, title: str, page_count: int):
+    """
+    Send email when PDF exceeds the page limit.
+    """
+    if not RESEND_API_KEY:
+        raise EnvironmentError("RESEND_API_KEY is not set")
+
+    resend.api_key = RESEND_API_KEY
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f7f7f7;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f7;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+
+        <!-- Logo -->
+        <tr><td style="background:#0a0a0a;padding:32px 40px;">
+          <span style="font-family:'SF Mono','Fira Mono','Consolas',monospace;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">PaperFlow</span>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:36px 40px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#333;line-height:1.7;">
+          <p style="margin:0 0 16px;">Hi,</p>
+          <p style="margin:0 0 16px;">Your paper &ldquo;{title}&rdquo; has {page_count} pages, which exceeds our free playground limit of 5 pages.</p>
+          <p style="margin:0 0 16px;">The playground is designed for quick quality testing &mdash; you&rsquo;ve already seen what our parser can do.</p>
+          <p style="margin:0 0 8px;">For full documents and batch processing:</p>
+          <p style="margin:0 0 4px;">&bull; API access &mdash; from $0.05/page, handles LaTeX, multi-column, footnotes</p>
+          <p style="margin:0 0 4px;">&bull; MCP Server &mdash; use PaperFlow directly inside Claude Desktop</p>
+          <p style="margin:0 0 16px;">&bull; Self-hosted deployment &mdash; available for enterprise</p>
+          <p style="margin:0 0 28px;">Contact us: <a href="mailto:{CONTACT_EMAIL}" style="color:#333;">{CONTACT_EMAIL}</a></p>
+          <p style="margin:0;">&mdash; PaperFlow</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    params = {
+        "from": _resolve_from_header(),
+        "reply_to": CONTACT_EMAIL,
+        "to": [to_email],
+        "subject": "PaperFlow: Your PDF exceeds the free limit",
+        "html": html_body,
+    }
+
+    resend.Emails.send(params)
+
+
+async def send_failure_email(to_email: str, original_filename: str):
+    """
+    Send email when processing fails unexpectedly.
+    """
+    if not RESEND_API_KEY:
+        raise EnvironmentError("RESEND_API_KEY is not set")
+
+    resend.api_key = RESEND_API_KEY
+    safe_name = html.escape(original_filename or "your PDF")
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f7f7f7;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f7;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+        <tr><td style="background:#0a0a0a;padding:32px 40px;">
+          <span style="font-family:'SF Mono','Fira Mono','Consolas',monospace;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">PaperFlow</span>
+        </td></tr>
+        <tr><td style="padding:36px 40px 24px;">
+          <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;font-weight:600;color:#111;margin:0 0 16px;">
+            We couldn't finish processing your PDF
+          </p>
+          <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#555;margin:0 0 12px;line-height:1.6;">
+            File: <strong>{safe_name}</strong>
+          </p>
+          <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#555;margin:0;line-height:1.6;">
+            Please try again. If it fails again, send the PDF to
+            <a href="mailto:{CONTACT_EMAIL}" style="color:#7c8aff;">{CONTACT_EMAIL}</a>
+            and we'll investigate.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    params = {
+        "from": _resolve_from_header(),
+        "reply_to": CONTACT_EMAIL,
+        "to": [to_email],
+        "subject": "PaperFlow: Processing failed",
+        "html": html_body,
     }
 
     resend.Emails.send(params)
