@@ -12,7 +12,13 @@ DATA_DIR        = os.environ.get("DATA_DIR", "./data/jobs")
 DAILY_SUBMISSION_LIMIT = int(os.environ.get("DAILY_SUBMISSION_LIMIT", "300"))
 MONTHLY_PAGE_LIMIT     = int(os.environ.get("MONTHLY_PAGE_LIMIT", "8000"))
 PER_EMAIL_DAILY_LIMIT  = int(os.environ.get("PER_EMAIL_DAILY_LIMIT", "3"))
+PER_USER_TRIAL_PAGE_LIMIT = int(os.environ.get("PER_USER_TRIAL_PAGE_LIMIT", "100"))
 MAX_FILE_SIZE_MB       = int(os.environ.get("MAX_FILE_SIZE_MB", "15"))
-MAX_PAGES              = int(os.environ.get("MAX_PAGES", "5"))
+MAX_PAGES              = int(os.environ.get("MAX_PAGES", "15"))
 CONTACT_EMAIL          = os.environ.get("CONTACT_EMAIL", "support@paperflowing.com")
 MCP_EMAIL_PREFIX       = "mcp@"
+PRO_EMAILS = {
+    email.strip().lower()
+    for email in os.environ.get("PRO_EMAILS", "").split(",")
+    if email.strip()
+}

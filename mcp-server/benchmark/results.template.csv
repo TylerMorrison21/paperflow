@@ -1,0 +1,7 @@
+case_id,mode,paper_id,pdf_url,pages,prompt_id,prompt,input_tokens,output_tokens,latency_seconds,quality_score,success,notes,timestamp
+p1_q1,vision,p1,https://arxiv.org/pdf/2301.00001.pdf,11,q1,"Summarize the paper in 8 bullets",18500,730,28.4,4,true,,2026-03-03T10:00:00Z
+p1_q1,mcp,p1,https://arxiv.org/pdf/2301.00001.pdf,11,q1,"Summarize the paper in 8 bullets",5200,710,14.2,4,true,,2026-03-03T10:05:00Z
+p1_q2,vision,p1,https://arxiv.org/pdf/2301.00001.pdf,11,q2,"What is the core methodology?",9800,420,20.1,4,true,,2026-03-03T10:10:00Z
+p1_q2,mcp,p1,https://arxiv.org/pdf/2301.00001.pdf,11,q2,"What is the core methodology?",2900,430,9.7,5,true,,2026-03-03T10:13:00Z
+p2_q1,vision,p2,https://arxiv.org/pdf/2401.01234.pdf,9,q1,"Extract key findings and limitations",12100,560,24.9,3,true,,2026-03-03T11:00:00Z
+p2_q1,mcp,p2,https://arxiv.org/pdf/2401.01234.pdf,9,q1,"Extract key findings and limitations",3500,580,12.1,4,true,,2026-03-03T11:04:00Z

@@ -1,14 +1,16 @@
 {
   "name": "paperflow-mcp",
-  "version": "0.1.1",
-  "description": "MCP server that converts academic PDFs to structured Markdown for Claude — saves ~80% tokens vs vision-based PDF reading, preserves LaTeX, tables, and citations",
+  "version": "0.1.5",
+  "description": "MCP server that lets Claude accurately analyze academic PDFs — preserves LaTeX equations, table structures, citation links, and multi-column reading order. Also reduces token usage by ~80% vs vision-based PDF reading.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
     "paperflow-mcp": "src/index.js"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "bench:report": "node scripts/benchmark_report.js benchmark/results.csv",
+    "bench:report:template": "node scripts/benchmark_report.js benchmark/results.template.csv"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"

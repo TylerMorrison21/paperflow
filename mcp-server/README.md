@@ -14,13 +14,27 @@ Claude gets text instead of images — **~80% fewer tokens, significantly better
 
 ## Quick Start
 
-Add to your `claude_desktop_config.json`:
+Choose the config for your OS and add it to `claude_desktop_config.json`.
+
+Windows:
+```json
+{
+  "mcpServers": {
+    "paperflow": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "paperflow-mcp@0.1.5"]
+    }
+  }
+}
+```
+
+Mac/Linux:
 ```json
 {
   "mcpServers": {
     "paperflow": {
       "command": "npx",
-      "args": ["-y", "paperflow-mcp"]
+      "args": ["-y", "paperflow-mcp@0.1.5"]
     }
   }
 }
@@ -40,16 +54,25 @@ Just talk to Claude naturally:
 Claude will automatically call PaperFlow to convert the PDF,
 then analyze the structured Markdown. You never leave the conversation.
 
-## Why Not Just Send PDFs Directly to Claude?
+For very large PDFs, the MCP server now returns a preview plus `job_id` first,
+then streams markdown in chunks via `get_markdown_chunk` to avoid Claude chat length errors.
+For scanned/image-only PDFs, PaperFlow now auto-retries with OCR. If OCR still cannot extract usable text,
+the tool returns a clear conversion failure instead of fabricated markdown.
 
-| | Direct PDF (vision) | With PaperFlow MCP |
+If Claude Desktop truncates attachment bytes, `paperflow-mcp@0.1.5` now returns actionable recovery steps.
+You can also bypass attachment transport by passing a local path in `source`, e.g.:
+- `C:\Users\you\Desktop\paper.pdf`
+- `file:///C:/Users/you/Desktop/paper.pdf`
+
+## What happens when AI reads your PDF directly
+
+| Content Type | Direct PDF (vision) | Via PaperFlow |
 |---|---|---|
-| **Token cost** | ~$0.15-0.40 per paper | ~$0.02-0.05 per paper |
-| **LaTeX equations** | Broken / garbled | Perfect `$...$` and `$$...$$` |
-| **Multi-column** | Scrambled reading order | Correct paragraph flow |
-| **Tables** | Cells merged, structure lost | Clean Markdown tables |
-| **Citations** | Plain text [1] | Linked footnotes [^1] with full references |
-| **Speed** | Slow (vision processing) | Fast (text processing) |
+| **Equations** | Seen as images — can't reason or verify | Parsed as LaTeX — fully computable |
+| **Multi-column** | Sentences from different columns interleaved | Correct reading order preserved |
+| **Tables** | Numbers without structure | Markdown tables with rows and columns |
+| **Citations [1,2]** | Plain text, no connection to references | Linked footnotes [^1][^2] with sources |
+| **Token cost** | ~50k tokens/paper | ~20k tokens/paper |
 
 ## What Gets Preserved
 
@@ -62,7 +85,18 @@ then analyze the structured Markdown. You never leave the conversation.
 
 ## Limits
 
-- Free: 5 pages per document, 3 documents per day
-- Need more? API & batch processing available: support@paperflowing.com
+- Free trial: 15 pages per document, 3 documents/day, up to 100 total converted pages per email
+- Need more? Email support@paperflowing.com and your `PAPERFLOW_EMAIL` can be added to Pro
+
+## Verify Token Savings
+
+Use the built-in benchmark kit to prove savings on your own workload:
+
+```bash
+cp benchmark/results.template.csv benchmark/results.csv
+npm run bench:report
+```
+
+For full instructions, see `benchmark/README.md`.
 
 ## How It Works

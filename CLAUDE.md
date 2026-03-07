@@ -22,7 +22,7 @@ Stack: Minimal frontend (upload box) + FastAPI backend + Marker API + Resend ema
 - ❌ Highlight & annotation system
 - ❌ Any UI beyond a drag-drop box + email input + "check your inbox" confirmation
 - ❌ [[#^ref-N]] block reference links (replaced by standard footnotes)
-- ❌ Generous free tier (playground capped at 5 pages — demo only)
+- ❌ Generous free tier (playground capped at 15 pages + 3 conversions/day — demo only)
 
 ## Architecture
 ```
@@ -60,7 +60,7 @@ D:/Projects/pdfreflow/
 │       └── ratelimit.py         # Per-email + global rate limiting
 │
 ├── frontend/                    # ONE static HTML page
-│   └── index.html               # Upload box + email input + confirmation
+│   └── index.html               # Funnel layout: Hero → Before/After → MCP → Enterprise CTA
 │
 ├── mcp-server/                  # MCP Server (paperflow-mcp on npm)
 │   ├── package.json
@@ -141,12 +141,12 @@ def postprocess(raw_markdown: str, images: dict, metadata: dict) -> str:
 - User drags contents into Obsidian vault → everything just works
 
 ## Rate Limiting & Anti-Abuse
-- **Page limit**: 5 pages max per PDF (playground is a quality demo, not free conversion)
-- **Per-email**: 3 papers/day per email address
+- **Page limit**: 15 pages max per PDF (playground is a quality demo, not free conversion)
+- **Per-email**: 3 conversions/day per email address
 - **Global daily**: 300 submissions/day (handles Reddit-scale traffic spikes)
 - **Monthly pages**: 8,000 pages/month
 - **Graceful degradation**: 429 responses show friendly messages, not error codes
-  - Per-email: "You've reached your daily limit of 3 papers. Come back tomorrow!"
+  - Per-email: "You've reached your free daily limit of 3 conversions. Upgrade to Pro for higher limits."
   - Global: "PaperFlow is experiencing high demand. Please try again in a few hours!"
 - **Frontend**: 429s shown in warm yellow (#c9a227), other errors in red
 
@@ -183,16 +183,17 @@ def postprocess(raw_markdown: str, images: dict, metadata: dict) -> str:
   - Deploy: `cd D:/projects/pdfreflow/frontend && vercel --prod`
 
 ## Product Positioning
-- **Playground** (paperflowing.com) = free demo, max 5 pages
+- **Playground** (paperflowing.com) = free demo, max 15 pages and 3 conversions/day
 - **MCP Server** (paperflow-mcp) = primary distribution channel, integrates into Claude Desktop workflow
 - **API** (future) = batch processing for enterprise
 - Target customers: EdTech, academic tool builders, research infrastructure teams
-- All messaging funnels heavy users to api@paperflowing.com
+- All messaging funnels heavy users to support@paperflowing.com
 
 ## MCP Server
 - Location: `mcp-server/` directory
-- NPM package: `paperflow-mcp` (current: v0.1.1)
-- Tool: `convert_pdf` — accepts PDF URL or base64; returns Markdown with metadata header
+- NPM package: `paperflow-mcp` (current: v0.1.5)
+- Tool: `convert_pdf` — accepts PDF URL, base64, or absolute local PDF path; returns Markdown with metadata header
+- v0.1.5 adds truncated/malformed attachment detection with user-facing recovery steps (retry via local path or URL)
 - Calls backend `POST /api/submit` + `GET /api/jobs/{job_id}/status` + `/result`
 - Email field always set to `mcp@paperflowing.com` — backend detects `MCP_EMAIL_PREFIX = "mcp@"` and skips Resend
 - No auth required (rate limited by backend)
@@ -239,3 +240,15 @@ When a task is done or stuck, update `plan.md`:
 - status (Done / Blocked)
 - modified files
 - next step (1 line)
+
+## Recent Task Memory (2026-03-04)
+- Published `paperflow-mcp@0.1.5` with:
+  - malformed/truncated attachment detection
+  - clear user-facing retry instructions
+  - local file-path bypass in `convert_pdf` source
+- Updated user-facing MCP install snippets to pin `paperflow-mcp@0.1.5`:
+  - `frontend/index.html`
+  - `mcp-server/README.md`
+- Production deploys completed:
+  - Vercel: `https://www.paperflowing.com`
+  - Railway: deployment `443391c2-68a1-4984-80f8-fed31745c3da` status `SUCCESS`

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PaperFlow</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -170,7 +171,7 @@
           margin-bottom: 0.5rem;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-        ">Free Playground &middot; 5 pages max</p>
+        ">Free Playground &middot; 15 pages max &middot; 3 free conversions/day</p>
 
         <div id="dropzone">
           <div id="dropzone-label">Drag &amp; drop your PDF here<br><span class="file-hint">or click to browse</span></div>
@@ -308,10 +309,12 @@ Table 3: Results...
         10,000+ pages processed for researchers worldwide
       </p>
       <p style="color: #666; font-size: 0.85rem; margin: 0;">
-        High-volume API &middot; Batch processing &middot; Self-hosted Docker &middot;
-        <a href="mailto:support@paperflowing.com" style="color: #7c8aff; text-decoration: none;">
-          Contact sales &rarr;
-        </a>
+        High-volume API &middot; Batch processing &middot; Self-hosted Docker<br>
+        Process 500 papers/month? Save ~$45 in API token costs.<br>
+        Contact sales &rarr; support@paperflowing.com
+      </p>
+      <p style="color: #3f3f3f; font-size: 0.72rem; margin-top: 1rem; margin-bottom: 0;">
+        Paperflowing &copy; 2026. All rights reserved.
       </p>
     </div>
 
@@ -321,12 +324,17 @@ Table 3: Results...
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs" type="module"></script>
   <script type="module">
-    const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
+    let pdfjsLib = null;
+    async function getPdfJs() {
+      if (!pdfjsLib) {
+        pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
+      }
+      return pdfjsLib;
+    }
 
-    const MAX_PAGES = 5;
+    const MAX_PAGES = 15;
     const dropzone    = document.getElementById('dropzone');
     const fileInput   = document.getElementById('file-input');
     const form        = document.getElementById('upload-form');
@@ -375,10 +383,11 @@ Table 3: Results...
 
       // Count pages client-side
       try {
+        const pdfjs = await getPdfJs();
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
         if (pdf.numPages > MAX_PAGES) {
-          showError(`Free playground limited to 5 pages. For full documents: support@paperflowing.com`, true);
+          showError(`Free playground limited to 15 pages. Need more? Upgrade to Pro: support@paperflowing.com`, true);
           return;
         }
       } catch (err) {

@@ -2,7 +2,7 @@ import re
 import html
 import resend
 from pathlib import Path
-from api.config import RESEND_API_KEY, FROM_EMAIL, CONTACT_EMAIL
+from api.config import RESEND_API_KEY, FROM_EMAIL, CONTACT_EMAIL, MAX_PAGES
 
 
 def _resolve_from_header() -> str:
@@ -138,7 +138,7 @@ async def send_page_limit_email(to_email: str, title: str, page_count: int):
         <!-- Body -->
         <tr><td style="padding:36px 40px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#333;line-height:1.7;">
           <p style="margin:0 0 16px;">Hi,</p>
-          <p style="margin:0 0 16px;">Your paper &ldquo;{title}&rdquo; has {page_count} pages, which exceeds our free playground limit of 5 pages.</p>
+          <p style="margin:0 0 16px;">Your paper &ldquo;{title}&rdquo; has {page_count} pages, which exceeds our free playground limit of {MAX_PAGES} pages.</p>
           <p style="margin:0 0 16px;">The playground is designed for quick quality testing &mdash; you&rsquo;ve already seen what our parser can do.</p>
           <p style="margin:0 0 8px;">For full documents and batch processing:</p>
           <p style="margin:0 0 4px;">&bull; API access &mdash; from $0.05/page, handles LaTeX, multi-column, footnotes</p>
