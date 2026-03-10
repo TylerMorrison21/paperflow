@@ -4,6 +4,7 @@ import hashlib
 import logging
 import re
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from pypdf import PdfReader
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
@@ -20,6 +21,29 @@ logger = logging.getLogger(__name__)
 
 # In-memory hash → job_dir mapping for dedup
 _hash_cache: dict[str, str] = {}
+
+_TITLE_BLACKLIST = {
+    "abstract",
+    "introduction",
+    "references",
+    "bibliography",
+    "contents",
+    "table of contents",
+}
+
+_AFFILIATION_HINTS = (
+    "university",
+    "institute",
+    "department",
+    "school",
+    "college",
+    "laboratory",
+    "laboratoire",
+    "lab",
+    "hospital",
+    "faculty",
+    "research center",
+)
 
 
 def _build_hash_cache():
@@ -73,26 +97,271 @@ def _extract_cached_title(md_content: str) -> str | None:
     return None
 
 
+def _clean_inline_markdown(text: str) -> str:
+    cleaned = re.sub(r"<sup>.*?</sup>", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+    cleaned = cleaned.replace("*", "").replace("`", "").replace("_", "")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip().strip('"').strip("'")
+
+
+def _is_valid_title_candidate(candidate: str) -> bool:
+    if not candidate:
+        return False
+    lowered = candidate.lower()
+    if "untitled" in lowered:
+        return False
+    if lowered in _TITLE_BLACKLIST:
+        return False
+    if len(candidate) < 6 or len(candidate) > 240:
+        return False
+    if "@" in candidate:
+        return False
+    return True
+
+
+def _extract_title_from_markdown(raw_markdown: str) -> str | None:
+    lines = raw_markdown.splitlines()
+
+    for line in lines[:120]:
+        match = re.match(r"^\s{0,3}#{1,3}\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        candidate = _clean_inline_markdown(match.group(1))
+        if _is_valid_title_candidate(candidate):
+            return candidate
+
+    for line in lines[:60]:
+        candidate = _clean_inline_markdown(line)
+        if not candidate:
+            continue
+        lowered = candidate.lower()
+        if lowered.startswith(("abstract", "keywords", "introduction")):
+            break
+        if re.match(r"^\d+(\.\d+)*\s", candidate):
+            continue
+        if any(hint in lowered for hint in _AFFILIATION_HINTS):
+            continue
+        if _is_valid_title_candidate(candidate):
+            return candidate
+
+    return None
+
+
+def _coerce_author_items(value) -> list[str]:
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return []
+        if "," in raw or ";" in raw or " and " in raw.lower():
+            normalized = re.sub(r"\s+and\s+", ",", raw, flags=re.IGNORECASE)
+            return [part.strip() for part in re.split(r"[;,]", normalized) if part.strip()]
+        return [raw]
+
+    if isinstance(value, (list, tuple, set)):
+        items: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                items.extend(_coerce_author_items(entry))
+                continue
+            if isinstance(entry, dict):
+                for key in ("name", "full_name", "author", "display_name"):
+                    raw_name = entry.get(key)
+                    if isinstance(raw_name, str) and raw_name.strip():
+                        items.append(raw_name.strip())
+                        break
+        return items
+
+    return []
+
+
+def _normalize_author_name(raw: str) -> str:
+    cleaned = _clean_inline_markdown(raw)
+    cleaned = re.sub(r"\([^)]*\)", "", cleaned)
+    cleaned = re.sub(r"\b\d{1,2}\b", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,;:")
+    return cleaned
+
+
+def _looks_like_author_name(name: str) -> bool:
+    if not name:
+        return False
+    if "@" in name:
+        return False
+    lowered = name.lower()
+    if any(hint in lowered for hint in _AFFILIATION_HINTS):
+        return False
+    if re.search(r"https?://|www\.", lowered):
+        return False
+    if len(name) < 3 or len(name) > 80:
+        return False
+
+    tokens = name.split()
+    if len(tokens) > 6:
+        return False
+    if not re.search(r"[A-Za-z]", name):
+        return False
+    if name.isupper() and len(tokens) > 2:
+        return False
+    return True
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen = set()
+    out = []
+    for value in values:
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(value)
+    return out
+
+
+def extract_authors(metadata: dict, raw_markdown: str, title: str) -> list[str]:
+    for key in ("authors", "author_names", "author", "creators"):
+        if key not in metadata:
+            continue
+        raw_items = _coerce_author_items(metadata.get(key))
+        normalized = [_normalize_author_name(item) for item in raw_items]
+        filtered = [name for name in normalized if _looks_like_author_name(name)]
+        filtered = _dedupe_preserve_order(filtered)
+        if filtered:
+            return filtered[:20]
+
+    lines = raw_markdown.splitlines()
+    title_idx = None
+
+    title_norm = _clean_inline_markdown(title).casefold()
+    for idx, line in enumerate(lines[:140]):
+        line_norm = _clean_inline_markdown(line).casefold()
+        if line_norm and line_norm == title_norm:
+            title_idx = idx
+            break
+
+    if title_idx is None:
+        for idx, line in enumerate(lines[:140]):
+            if re.match(r"^\s{0,3}#{1,3}\s+.+", line):
+                title_idx = idx
+                break
+
+    if title_idx is None:
+        return []
+
+    candidates: list[str] = []
+    blank_streak = 0
+    for line in lines[title_idx + 1:title_idx + 45]:
+        stripped = line.strip()
+        if not stripped:
+            blank_streak += 1
+            if blank_streak >= 2 and candidates:
+                break
+            continue
+
+        blank_streak = 0
+        if re.match(r"^\s*#{1,6}\s+", stripped):
+            break
+
+        cleaned = _clean_inline_markdown(stripped)
+        lowered = cleaned.lower()
+        if lowered.startswith(("abstract", "keywords", "introduction")):
+            break
+        if "@" in cleaned:
+            continue
+        if any(hint in lowered for hint in _AFFILIATION_HINTS):
+            continue
+
+        parts = _coerce_author_items(cleaned)
+        for part in parts:
+            name = _normalize_author_name(part)
+            if _looks_like_author_name(name):
+                candidates.append(name)
+
+    return _dedupe_preserve_order(candidates)[:20]
+
+
+def _normalize_date_value(value) -> str | None:
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)):
+        year = int(value)
+        if 1900 <= year <= 2100:
+            return f"{year}-01-01"
+        return None
+
+    if not isinstance(value, str):
+        return None
+
+    raw = value.strip()
+    if not raw:
+        return None
+
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
+        return raw
+    if re.match(r"^\d{4}/\d{2}/\d{2}$", raw):
+        return raw.replace("/", "-")
+    if re.match(r"^\d{4}$", raw):
+        return f"{raw}-01-01"
+
+    for fmt in ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    match = re.search(r"\b(19|20)\d{2}[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])\b", raw)
+    if match:
+        return match.group(0).replace("/", "-")
+
+    month_match = re.search(
+        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+(19|20)\d{2}\b",
+        raw,
+        flags=re.IGNORECASE,
+    )
+    if month_match:
+        try:
+            return datetime.strptime(month_match.group(0), "%B %d, %Y").strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    return None
+
+
+def extract_date(metadata: dict, raw_markdown: str) -> str | None:
+    for key in ("date", "published", "publication_date", "published_date", "issued", "created", "year"):
+        normalized = _normalize_date_value(metadata.get(key))
+        if normalized:
+            return normalized
+
+    top_block = "\n".join(raw_markdown.splitlines()[:100])
+    return _normalize_date_value(top_block)
+
+
 def extract_title(metadata: dict, raw_markdown: str, original_filename: str) -> str:
     """
-    Resolve paper title with three fallbacks:
-    1. Marker API metadata.title
-    2. First H1 heading in returned markdown
-    3. Uploaded filename stem (spaces cleaned)
+    Resolve paper title with fallbacks:
+    1. Marker metadata title-like keys
+    2. Heading/lead-line extraction from markdown
+    3. Uploaded filename stem
     """
-    title = metadata.get("title", "").strip()
-    if title and "untitled" not in title.lower():
-        return title
-
-    # First H1 in markdown
-    for line in raw_markdown.splitlines():
-        if line.startswith("# "):
-            candidate = line[2:].strip()
-            if candidate:
+    for key in ("title", "document_title", "paper_title"):
+        title = metadata.get(key, "")
+        if isinstance(title, str):
+            candidate = _clean_inline_markdown(title)
+            if _is_valid_title_candidate(candidate):
                 return candidate
 
-    # Filename fallback
-    return Path(original_filename).stem.replace("_", " ").replace("-", " ")
+    markdown_title = _extract_title_from_markdown(raw_markdown)
+    if markdown_title:
+        return markdown_title
+
+    fallback = Path(original_filename).stem.replace("_", " ").replace("-", " ")
+    fallback = re.sub(r"\s+", " ", fallback).strip()
+    return fallback or "Untitled Paper"
 
 
 async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filename: str, file_hash: str):
@@ -152,10 +421,20 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
         record_submission(page_count, email=email)
         logger.info(f"Job {job_id}: Recorded {page_count} pages")
 
-        # 3. Resolve title before postprocessing so frontmatter gets the real title
+        # 3. Resolve metadata quality before postprocessing/frontmatter
         title = extract_title(metadata, raw_markdown, original_filename)
+        authors = extract_authors(metadata, raw_markdown, title)
+        published_date = extract_date(metadata, raw_markdown)
+        source = metadata.get("source") or original_filename
+
         metadata["title"] = title
-        logger.info(f"Job {job_id}: Resolved title: {title!r}")
+        metadata["authors"] = authors
+        metadata["date"] = published_date
+        metadata["source"] = source
+        logger.info(
+            f"Job {job_id}: Resolved metadata title={title!r}, "
+            f"authors={len(authors)}, date={published_date!r}"
+        )
 
         # 4. Postprocess markdown
         logger.info(f"Job {job_id}: Postprocessing markdown")

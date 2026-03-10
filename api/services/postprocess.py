@@ -341,21 +341,57 @@ def linkify_tables(md: str) -> str:
     return md
 
 
+def _yaml_quote(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _normalize_author_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(value, (list, tuple, set)):
+        names = []
+        for entry in value:
+            if isinstance(entry, str):
+                cleaned = entry.strip()
+                if cleaned:
+                    names.append(cleaned)
+        return names
+    return []
+
+
 def inject_frontmatter(md: str, metadata: dict) -> str:
     """
     Prepend YAML frontmatter with paper metadata.
     """
-    title = metadata.get('title', 'Untitled Paper')
-    authors = metadata.get('authors', [])
-    source = metadata.get('source', '')
+    title = str(metadata.get('title', 'Untitled Paper') or 'Untitled Paper').strip()
+    authors = _normalize_author_list(metadata.get('authors', []))
+    source = str(metadata.get('source', '') or '').strip()
 
     content_hash = hashlib.md5(md.encode()).hexdigest()[:8]
     extracted = datetime.now().strftime('%Y-%m-%d')
+    date_value = str(metadata.get('date') or metadata.get('published') or extracted).strip()
+
+    if re.match(r'^\d{4}/\d{2}/\d{2}$', date_value):
+        date_value = date_value.replace('/', '-')
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_value):
+        date_value = extracted
+
+    if authors:
+        authors_block = "authors:\n" + "\n".join(
+            f"  - {_yaml_quote(author)}" for author in authors
+        )
+    else:
+        authors_block = "authors: []"
 
     frontmatter = f"""---
-title: "{title}"
-authors: {authors}
-source: "{source}"
+title: {_yaml_quote(title)}
+{authors_block}
+source: {_yaml_quote(source)}
+date: "{date_value}"
 extracted: "{extracted}"
 hash: "{content_hash}"
 tags: [paperflow, academic]
