@@ -254,7 +254,7 @@ Table 3: Results...
         margin-bottom: 0.3rem;
       ">
         <h3 style="color: #7c8aff; font-size: 1rem; margin: 0; font-weight: 600;">
-          Use with Claude Desktop
+          Install PaperFlow MCP (Windows, macOS, Linux)
         </h3>
         <span style="
           background: #1a1a2e;
@@ -264,16 +264,56 @@ Table 3: Results...
           border-radius: 3px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-        ">Recommended</span>
+        ">2-minute setup</span>
       </div>
 
       <p style="color: #888; font-size: 0.85rem; margin: 0 0 0.3rem 0;">
-        Stop sending PDF images to Claude. Convert to structured Markdown first.
+        Deploy once, then use PaperFlow directly inside Claude Desktop.
       </p>
       <p style="color: #555; font-size: 0.78rem; margin: 0 0 1.2rem 0;">
         ~80% fewer tokens &middot; LaTeX preserved &middot; tables intact &middot; citations linked
       </p>
 
+      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
+        Step 1: Install
+      </p>
+      <pre style="
+        background: #0f0f0f;
+        border: 1px solid #1a1a1a;
+        border-radius: 6px;
+        padding: 0.8rem 1rem;
+        overflow-x: auto;
+        font-size: 0.78rem;
+        color: #a0a0a0;
+        line-height: 1.6;
+        margin: 0 0 1rem 0;
+      "><code>npm install -g paperflow-mcp</code></pre>
+
+      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
+        Step 2: Add to Claude Desktop config (macOS / Linux)
+      </p>
+      <pre style="
+        background: #0f0f0f;
+        border: 1px solid #1a1a1a;
+        border-radius: 6px;
+        padding: 1rem;
+        overflow-x: auto;
+        font-size: 0.78rem;
+        color: #a0a0a0;
+        line-height: 1.6;
+        margin: 0 0 1rem 0;
+      "><code>{
+  "mcpServers": {
+    "paperflow": {
+      "command": "npx",
+      "args": ["-y", "paperflow-mcp"]
+    }
+  }
+}</code></pre>
+
+      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
+        Step 3: Add to Claude Desktop config (Windows)
+      </p>
       <pre style="
         background: #0f0f0f;
         border: 1px solid #1a1a1a;
@@ -287,14 +327,14 @@ Table 3: Results...
       "><code>{
   "mcpServers": {
     "paperflow": {
-      "command": "npx",
-      "args": ["-y", "paperflow-mcp"]
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "paperflow-mcp"]
     }
   }
 }</code></pre>
 
       <p style="color: #444; font-size: 0.75rem; margin-top: 0.75rem; margin-bottom: 0;">
-        Add to claude_desktop_config.json &rarr; restart Claude &rarr; ask it to analyze any PDF.
+        Step 4: Restart Claude Desktop, then ask it to analyze any PDF with PaperFlow MCP.
       </p>
     </div>
 
@@ -310,8 +350,19 @@ Table 3: Results...
       </p>
       <p style="color: #666; font-size: 0.85rem; margin: 0;">
         High-volume API &middot; Batch processing &middot; Self-hosted Docker<br>
-        Process 500 papers/month? Save ~$45 in API token costs.<br>
-        Contact sales &rarr; support@paperflowing.com
+        Process 500 papers/month? Save ~$45 in API token costs.
+      </p>
+      <p style="margin: 0.9rem 0 0 0;">
+        <a href="mailto:support@paperflowing.com?subject=Need%20API%20access" style="
+          display: inline-block;
+          padding: 0.55rem 0.95rem;
+          border-radius: 6px;
+          border: 1px solid #7c8aff;
+          color: #7c8aff;
+          text-decoration: none;
+          font-size: 0.82rem;
+          font-weight: 600;
+        ">Need API access? Contact us</a>
       </p>
       <p style="color: #3f3f3f; font-size: 0.72rem; margin-top: 1rem; margin-bottom: 0;">
         Paperflowing &copy; 2026. All rights reserved.
