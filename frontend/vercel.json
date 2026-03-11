@@ -1,5 +1,5 @@
 {
   "buildCommand": "",
   "installCommand": "",
-  "outputDirectory": "frontend"
+  "outputDirectory": "."
 }
