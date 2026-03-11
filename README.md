@@ -208,12 +208,6 @@ For the best output quality, use Marker API or self-hosted Marker.
 PaperFlow is still built and tested most deeply against Marker's output format.
 Other parsers may work well for basic features (LaTeX normalization, header cleanup), but footnote conversion and figure linking are strongest on Marker-style formatting.
 
-## Visual Comparison
-
-| Source PDF | Generic converter output | PaperFlow output |
-|---|---|---|
-| ![Source PDF](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/original_pdf.png) | ![Generic converter output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pymupdf_converted.png) | ![PaperFlow output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow_converted.png) |
-
 ## What `enhance()` Does
 
 `enhance()` upgrades parser output into structured markdown with:
