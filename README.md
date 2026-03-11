@@ -26,7 +26,7 @@ that works in Obsidian, Notion, Logseq, or any RAG pipeline.
 
 | Source PDF | Generic converter | PaperFlow output |
 |---|---|---|
-| ![Source](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/sample-paper.jpg) | ![Generic](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pydoc-converted-online-pdf-converter.jpg) | ![PaperFlow](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow-converted.jpg) |
+| ![Source](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/original_pdf.png) | ![Generic](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pymupdf_converted.png) | ![PaperFlow](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow_converted.png) |
 
 > **77K views on Reddit** · 810 upvotes · 98% upvote ratio · 
 > 10,000+ pages processed · Used by researchers in 40+ countries
@@ -212,7 +212,7 @@ Other parsers may work well for basic features (LaTeX normalization, header clea
 
 | Source PDF | Generic converter output | PaperFlow output |
 |---|---|---|
-| ![Source PDF](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/sample-paper.jpg) | ![Generic converter output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pydoc-converted-online-pdf-converter.jpg) | ![PaperFlow output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow-converted.jpg) |
+| ![Source PDF](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/original_pdf.png) | ![Generic converter output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pymupdf_converted.png) | ![PaperFlow output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow_converted.png) |
 
 Additional example:
 
