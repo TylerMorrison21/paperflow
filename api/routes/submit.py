@@ -12,7 +12,7 @@ from pypdf import PdfReader
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
 from api.models import SubmitResponse
 from api.config import DATA_DIR, MAX_FILE_SIZE_MB, MAX_PAGES, MCP_EMAIL_PREFIX
-from api.services.marker import parse_pdf
+from api.services.parsers import list_parsers, parse_pdf_with_parser
 from api.services.postprocess import postprocess
 from api.services.packager import build_zip
 from api.services.emailer import send_paper_email, send_page_limit_email, send_failure_email
@@ -60,16 +60,21 @@ def _build_hash_cache():
         zip_files = list(job_dir.glob("*.zip"))
         if pdf_path.exists() and zip_files:
             file_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
-            _hash_cache[file_hash] = str(job_dir)
+            parser_name = (job_dir / "parser.txt").read_text(encoding="utf-8").strip() if (job_dir / "parser.txt").exists() else "marker_api"
+            _hash_cache[_cache_key(file_hash, parser_name)] = str(job_dir)
+
+
+def _cache_key(file_hash: str, parser_name: str) -> str:
+    return f"{parser_name}:{file_hash}"
 
 
 # Build cache on module load
 _build_hash_cache()
 
 
-def _find_cached_zip(file_hash: str) -> Path | None:
+def _find_cached_zip(cache_key: str) -> Path | None:
     """Return cached ZIP path if this PDF was already processed."""
-    job_dir_str = _hash_cache.get(file_hash)
+    job_dir_str = _hash_cache.get(cache_key)
     if not job_dir_str:
         return None
     job_dir = Path(job_dir_str)
@@ -77,6 +82,10 @@ def _find_cached_zip(file_hash: str) -> Path | None:
     if zip_files and zip_files[0].exists():
         return zip_files[0]
     return None
+
+
+def _write_parser_name(job_dir: Path, parser_name: str) -> None:
+    (job_dir / "parser.txt").write_text(parser_name, encoding="utf-8")
 
 
 def _extract_cached_title(md_content: str) -> str | None:
@@ -366,7 +375,19 @@ def extract_title(metadata: dict, raw_markdown: str, original_filename: str) -> 
     return fallback or "Untitled Paper"
 
 
-async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filename: str, file_hash: str):
+@router.get("/api/parsers")
+def get_parser_options():
+    return {"parsers": list_parsers()}
+
+
+async def process_job(
+    job_id: str,
+    pdf_bytes: bytes,
+    email: str,
+    original_filename: str,
+    file_hash: str,
+    parser_name: str,
+):
     """
     Background task: process PDF and email result.
     """
@@ -374,7 +395,8 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
 
     try:
         # Check for cached result (duplicate PDF)
-        cached_zip = _find_cached_zip(file_hash)
+        cache_key = _cache_key(file_hash, parser_name)
+        cached_zip = _find_cached_zip(cache_key)
         if cached_zip:
             # Validate cache: must have footnotes and valid title
             title = None
@@ -391,6 +413,7 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
             if title and has_footnotes and md_content and 'untitled' not in title.lower():
                 logger.info(f"Job {job_id}: Cache hit for {file_hash[:12]}")
                 cached_copy = job_dir / cached_zip.name
+                _write_parser_name(job_dir, parser_name)
                 shutil.copy2(cached_zip, cached_copy)
                 (job_dir / "paper.md").write_text(md_content, encoding="utf-8")
                 if not email.startswith(MCP_EMAIL_PREFIX):
@@ -399,22 +422,23 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
                 return
 
             logger.info(f"Job {job_id}: Stale cache evicted for {file_hash[:12]}")
-            _hash_cache.pop(file_hash, None)
+            _hash_cache.pop(cache_key, None)
 
         logger.info(f"Job {job_id}: Starting processing for {email}")
 
         # 1. Save PDF
         pdf_path = job_dir / "input.pdf"
         pdf_path.write_bytes(pdf_bytes)
+        _write_parser_name(job_dir, parser_name)
         logger.info(f"Job {job_id}: PDF saved")
 
-        # 2. Call Marker API
-        logger.info(f"Job {job_id}: Calling Marker API")
-        result = await parse_pdf(pdf_bytes)
+        # 2. Call selected parser
+        logger.info(f"Job {job_id}: Calling parser={parser_name}")
+        result = await parse_pdf_with_parser(pdf_bytes, parser_name)
         raw_markdown = result["markdown"]
         images = result["images"]
         metadata = result["metadata"]
-        logger.info(f"Job {job_id}: Marker API complete")
+        logger.info(f"Job {job_id}: Parser complete")
 
         # Record usage (page count from metadata, fallback to 1)
         raw_page_count = metadata.get("pages", 1)
@@ -459,7 +483,7 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
         logger.info(f"Job {job_id}: ZIP created at {zip_path}")
 
         # Register in hash cache
-        _hash_cache[file_hash] = str(job_dir)
+        _hash_cache[cache_key] = str(job_dir)
         # 6. Send email (skipped for local/MCP submissions)
         if email.startswith(MCP_EMAIL_PREFIX):
             logger.info(f"Job {job_id}: local/MCP submission, skipping email")
@@ -486,15 +510,31 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
 async def submit_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    email: str = Form("mcp@paperflow.local")
+    email: str = Form("mcp@paperflow.local"),
+    parser: str = Form("pymupdf"),
 ):
     """
     Accept a PDF, start async processing, and return a job ID immediately.
     Email is optional for self-hosted/local use.
     """
+    parser = (parser or "pymupdf").strip().lower()
+
     # Validate file type
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    parser_options = {row["id"]: row for row in list_parsers()}
+    selected_parser = parser_options.get(parser)
+    if not selected_parser:
+        raise HTTPException(status_code=400, detail=f"Unknown parser '{parser}'.")
+    if not selected_parser["configured"]:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Parser '{parser}' is not configured in this instance. "
+                f"{selected_parser['setup']}."
+            ),
+        )
 
     # Generate job ID
     job_id = str(uuid.uuid4())
@@ -529,7 +569,8 @@ async def submit_pdf(
         )
 
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
-    cached_zip = _find_cached_zip(file_hash)
+    cache_key = _cache_key(file_hash, parser)
+    cached_zip = _find_cached_zip(cache_key)
 
     # Only enforce rate limits for new PDFs (not cached duplicates)
     if not cached_zip:
@@ -564,10 +605,21 @@ async def submit_pdf(
                 ),
             )
 
-    logger.info(f"Job {job_id}: Received PDF ({len(pdf_bytes)} bytes) for {email} [cached={cached_zip is not None}]")
+    logger.info(
+        f"Job {job_id}: Received PDF ({len(pdf_bytes)} bytes) for {email} "
+        f"[parser={parser} cached={cached_zip is not None}]"
+    )
 
     # Start background processing
-    background_tasks.add_task(process_job, job_id, pdf_bytes, email, file.filename, file_hash)
+    background_tasks.add_task(
+        process_job,
+        job_id,
+        pdf_bytes,
+        email,
+        file.filename,
+        file_hash,
+        parser,
+    )
 
     return SubmitResponse(
         job_id=job_id,

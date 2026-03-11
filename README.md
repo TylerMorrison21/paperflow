@@ -40,11 +40,25 @@ cp .env.example .env
 uvicorn api.main:app --port 8000
 ```
 
+Then open the local UI:
+
+```text
+http://localhost:8000/
+```
+
 Submit a PDF:
 
 ```bash
 curl -X POST http://localhost:8000/api/submit \
   -F "file=@paper.pdf"
+```
+
+Use Marker API instead of the default PyMuPDF fallback:
+
+```bash
+curl -X POST http://localhost:8000/api/submit \
+  -F "file=@paper.pdf" \
+  -F "parser=marker_api"
 ```
 
 Poll for completion:
@@ -98,6 +112,7 @@ print(markdown)
 
 | Parser | Status | Notes |
 |--------|--------|-------|
+| PyMuPDF | ✅ Fast local fallback | Free, fastest, easiest setup, but lower quality |
 | Marker API (Datalab) | ✅ Fully tested | Recommended. Sign up at datalab.to |
 | Marker (self-hosted) | ✅ Fully tested | Same output format as API |
 | MinerU | ⚠️ Partial | LaTeX fixing works, footnotes may need tuning |
@@ -105,10 +120,13 @@ print(markdown)
 | LlamaParse | ⚠️ Partial | Output format differs, YMMV |
 | Others | ❓ Unknown | PRs welcome to add parser adapters |
 
-PaperFlow is built and tested against Marker's output format.
-Other parsers may work for basic features (LaTeX normalization,
-header cleanup) but footnote conversion and figure linking
-depend on Marker-specific formatting patterns.
+For the easiest local path, start with PyMuPDF.
+For the best output quality, use Marker API or self-hosted Marker.
+
+PaperFlow is still built and tested most deeply against Marker's output format.
+Other parsers may work well for basic features (LaTeX normalization,
+header cleanup), but footnote conversion and figure linking
+are strongest on Marker-style formatting.
 
 If you use another parser and the output looks wrong, debug in this order:
 

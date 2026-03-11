@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PaperFlow Local UI</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+    :root {
+      --bg: #0a0a0a;
+      --panel: rgba(16, 18, 17, 0.92);
+      --border: rgba(82, 92, 86, 0.34);
+      --accent: #10b981;
+      --accent-strong: #34d399;
+      --text: #eef2ee;
+      --muted: #98a39d;
+      --warning: #f59e0b;
+      --danger: #fb7185;
+      --radius: 22px;
+      --mono: "JetBrains Mono", Consolas, monospace;
+      --sans: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.14), transparent 25%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 25%),
+        linear-gradient(180deg, #090909 0%, #0a0a0a 48%, #070808 100%);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px 18px 48px;
+    }
+
+    .page {
+      margin: 0 auto;
+      max-width: 1160px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      margin-bottom: 22px;
+    }
+
+    .eyebrow,
+    .hint,
+    .status-badge,
+    .parser-meta,
+    code,
+    pre,
+    button {
+      font-family: var(--mono);
+    }
+
+    .eyebrow {
+      color: var(--accent-strong);
+      display: inline-block;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin: 0 0 10px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.8rem);
+    }
+
+    p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .hero-copy p {
+      max-width: 62ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .hero-link,
+    button,
+    .download {
+      align-items: center;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 0.9rem;
+      gap: 8px;
+      justify-content: center;
+      padding: 12px 16px;
+      text-decoration: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .hero-link,
+    .download.primary,
+    button.primary {
+      background: var(--accent);
+      color: #032117;
+      font-weight: 600;
+    }
+
+    .hero-link.secondary,
+    .download.secondary,
+    button.secondary {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    button:disabled,
+    .download.disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .hero-card {
+      background: rgba(9, 13, 11, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .hero-card pre {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 14px;
+      color: #cbf5e1;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      padding: 14px;
+    }
+
+    .layout {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-head {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .status-badge {
+      border: 1px solid rgba(16, 185, 129, 0.24);
+      border-radius: 999px;
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      padding: 8px 10px;
+      text-transform: uppercase;
+    }
+
+    .parser-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .parser-option {
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      cursor: pointer;
+      display: block;
+      padding: 16px;
+    }
+
+    .parser-option.selected {
+      border-color: rgba(16, 185, 129, 0.35);
+      box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.22);
+    }
+
+    .parser-option.disabled {
+      opacity: 0.5;
+    }
+
+    .parser-option input {
+      display: none;
+    }
+
+    .parser-row {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .parser-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .parser-meta {
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .parser-note {
+      font-size: 0.92rem;
+    }
+
+    .dropzone {
+      align-items: center;
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px dashed rgba(16, 185, 129, 0.32);
+      border-radius: 20px;
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      min-height: 240px;
+      padding: 24px;
+      text-align: center;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .dropzone.dragging {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.8);
+    }
+
+    .dropzone strong {
+      font-size: 1.04rem;
+    }
+
+    .hint {
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .file-name {
+      color: var(--text);
+      font-size: 0.94rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .status-log {
+      background: rgba(8, 10, 9, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      min-height: 180px;
+      padding: 18px;
+      white-space: pre-wrap;
+    }
+
+    .status-log.error {
+      border-color: rgba(251, 113, 133, 0.32);
+      color: #fecdd3;
+    }
+
+    .download-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .preview {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 18px;
+      color: #d4f7e6;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      min-height: 320px;
+      overflow: auto;
+      padding: 16px;
+      white-space: pre-wrap;
+    }
+
+    .warning {
+      color: var(--warning);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px 12px 28px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+      }
+
+      .hero-link,
+      button,
+      .download {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Localhost UI</span>
+        <h1>Drop in a PDF. Get back clean markdown.</h1>
+        <p>
+          PaperFlow now includes a local web UI for self-hosted use. Choose the parser mode that fits your setup:
+          <strong>PyMuPDF</strong> for the fastest free local path, or <strong>Marker API</strong> for the best quality.
+        </p>
+        <div class="hero-actions">
+          <a class="hero-link" href="/project">Project Page</a>
+          <a class="hero-link secondary" href="/docs">API Docs</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <h3>Recommended defaults</h3>
+        <pre><code>PyMuPDF
+- free
+- local
+- fastest
+- lower quality
+
+Marker API
+- requires DATALAB_API_KEY
+- best markdown quality
+- best footnotes / figure links</code></pre>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>1. Choose parser</h2>
+              <p>PyMuPDF is the easiest local option. Marker API gives better output if you have a Datalab key.</p>
+            </div>
+            <div class="status-badge" id="parser-badge">Loading parsers</div>
+          </div>
+          <div class="parser-grid" id="parser-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>2. Upload PDF</h2>
+              <p>Drag a file here or pick one manually. The file stays on your local PaperFlow instance.</p>
+            </div>
+            <div class="hint">PDF only</div>
+          </div>
+          <label class="dropzone" id="dropzone">
+            <input id="file-input" type="file" accept="application/pdf,.pdf" hidden />
+            <strong>Drop PDF here</strong>
+            <p>or click to choose a file</p>
+            <div class="file-name" id="file-name">No file selected</div>
+          </label>
+          <div class="actions" style="margin-top: 16px;">
+            <button class="primary" id="convert-button" disabled>Convert PDF</button>
+            <button class="secondary" id="clear-button">Clear</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>3. Status</h2>
+              <p>PaperFlow will poll the backend until the job finishes.</p>
+            </div>
+            <div class="status-badge" id="job-status">Idle</div>
+          </div>
+          <div class="status-log" id="status-log">Choose a parser, drop a PDF, then click Convert PDF.</div>
+          <div class="download-row">
+            <a class="download primary disabled" id="download-markdown" href="#">Download markdown</a>
+            <a class="download secondary disabled" id="download-package" href="#">Download zip package</a>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>4. Markdown preview</h2>
+              <p>Shows the first part of the processed markdown once the job completes.</p>
+            </div>
+          </div>
+          <pre class="preview" id="preview">Preview will appear here after processing completes.</pre>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const parserGrid = document.getElementById("parser-grid");
+    const parserBadge = document.getElementById("parser-badge");
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file-input");
+    const fileName = document.getElementById("file-name");
+    const convertButton = document.getElementById("convert-button");
+    const clearButton = document.getElementById("clear-button");
+    const jobStatus = document.getElementById("job-status");
+    const statusLog = document.getElementById("status-log");
+    const preview = document.getElementById("preview");
+    const downloadMarkdown = document.getElementById("download-markdown");
+    const downloadPackage = document.getElementById("download-package");
+
+    let selectedParser = null;
+    let selectedFile = null;
+    let activeJobId = null;
+    let pollTimer = null;
+
+    function setStatus(label, text, mode = "") {
+      jobStatus.textContent = label;
+      statusLog.textContent = text;
+      statusLog.className = mode ? `status-log ${mode}` : "status-log";
+    }
+
+    function resetDownloads() {
+      downloadMarkdown.classList.add("disabled");
+      downloadPackage.classList.add("disabled");
+      downloadMarkdown.removeAttribute("href");
+      downloadPackage.removeAttribute("href");
+    }
+
+    function enableDownloads(jobId) {
+      downloadMarkdown.href = `/api/jobs/${jobId}/result`;
+      downloadPackage.href = `/api/jobs/${jobId}/package`;
+      downloadMarkdown.classList.remove("disabled");
+      downloadPackage.classList.remove("disabled");
+    }
+
+    function updateConvertState() {
+      convertButton.disabled = !(selectedParser && selectedFile);
+    }
+
+    function pickParser(parserId) {
+      selectedParser = parserId;
+      document.querySelectorAll(".parser-option").forEach((card) => {
+        card.classList.toggle("selected", card.dataset.parserId === parserId);
+      });
+      updateConvertState();
+    }
+
+    async function loadParsers() {
+      parserBadge.textContent = "Loading";
+      const response = await fetch("/api/parsers");
+      const data = await response.json();
+      const parsers = data.parsers || [];
+
+      parserGrid.innerHTML = "";
+
+      for (const parser of parsers) {
+        const label = document.createElement("label");
+        label.className = "parser-option";
+        if (!parser.configured) {
+          label.classList.add("disabled");
+        }
+        label.dataset.parserId = parser.id;
+
+        label.innerHTML = `
+          <input type="radio" name="parser" value="${parser.id}" ${parser.default ? "checked" : ""} ${parser.configured ? "" : "disabled"} />
+          <div class="parser-row">
+            <div class="parser-title">${parser.label}</div>
+            <div class="parser-meta">${parser.speed} · ${parser.quality}</div>
+          </div>
+          <p class="parser-note">${parser.description}</p>
+          <p class="parser-note"><strong>${parser.setup}</strong></p>
+        `;
+
+        if (parser.configured) {
+          label.addEventListener("click", () => pickParser(parser.id));
+        }
+
+        parserGrid.appendChild(label);
+      }
+
+      const defaultParser = parsers.find((parser) => parser.default && parser.configured) || parsers.find((parser) => parser.configured);
+      if (defaultParser) {
+        pickParser(defaultParser.id);
+        parserBadge.textContent = `${defaultParser.label} default`;
+      } else {
+        parserBadge.textContent = "No parser configured";
+        setStatus("Blocked", "No parser is configured. Install PyMuPDF locally or add DATALAB_API_KEY for Marker API.", "error");
+      }
+    }
+
+    function handleFile(file) {
+      if (!file) {
+        selectedFile = null;
+        fileName.textContent = "No file selected";
+        updateConvertState();
+        return;
+      }
+      selectedFile = file;
+      fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      updateConvertState();
+    }
+
+    async function pollJob(jobId) {
+      const response = await fetch(`/api/jobs/${jobId}/status`);
+      const data = await response.json();
+
+      if (data.status === "done") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        jobStatus.textContent = "Done";
+        setStatus("Done", "Conversion finished. You can download the markdown or the zip package.");
+        enableDownloads(jobId);
+        const markdown = await fetch(`/api/jobs/${jobId}/result`).then((res) => res.text());
+        preview.textContent = markdown.slice(0, 3500);
+        return;
+      }
+
+      if (data.status === "failed") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        setStatus("Failed", data.error || "PaperFlow failed to convert this PDF.", "error");
+        preview.textContent = "No preview available because the conversion failed.";
+        return;
+      }
+
+      if (data.status === "not_found") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        setStatus("Missing", "The backend no longer has this job.", "error");
+        return;
+      }
+
+      setStatus("Processing", `Job ${jobId} is still running...\nSelected parser: ${selectedParser}`);
+    }
+
+    async function submitFile() {
+      if (!selectedFile || !selectedParser) {
+        return;
+      }
+
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+
+      resetDownloads();
+      preview.textContent = "Waiting for processed markdown...";
+      setStatus("Uploading", "Submitting PDF to PaperFlow...");
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("parser", selectedParser);
+
+      const response = await fetch("/api/submit", {
+        method: "POST",
+        body: formData,
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        setStatus("Error", payload.detail || "Upload failed.", "error");
+        return;
+      }
+
+      activeJobId = payload.job_id;
+      setStatus("Queued", payload.message || `Job ${activeJobId} queued.`);
+      pollTimer = setInterval(() => pollJob(activeJobId), 2000);
+      pollJob(activeJobId);
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.add("dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("dragging");
+      });
+    });
+
+    dropzone.addEventListener("drop", (event) => {
+      const file = event.dataTransfer.files[0];
+      handleFile(file);
+    });
+
+    convertButton.addEventListener("click", submitFile);
+    clearButton.addEventListener("click", () => {
+      handleFile(null);
+      fileInput.value = "";
+      activeJobId = null;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      resetDownloads();
+      preview.textContent = "Preview will appear here after processing completes.";
+      setStatus("Idle", "Choose a parser, drop a PDF, then click Convert PDF.");
+    });
+
+    loadParsers().catch((error) => {
+      parserBadge.textContent = "Load failed";
+      setStatus("Error", `Failed to load parser options: ${error.message}`, "error");
+    });
+  </script>
+</body>
+</html>
