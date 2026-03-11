@@ -4,7 +4,7 @@
 
 ## What Changed
 
-`paperflow-mcp@0.3.0` is aligned with the new PaperFlow workflow:
+`paperflow-mcp@0.3.1` is aligned with the new PaperFlow workflow:
 
 - it targets your self-hosted PaperFlow backend
 - it can discover which parsers are available on that backend
@@ -49,7 +49,7 @@ Windows:
   "mcpServers": {
     "paperflow": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "paperflow-mcp@0.3.0"],
+      "args": ["/c", "npx", "-y", "paperflow-mcp@0.3.1"],
       "env": {
         "PAPERFLOW_API_URL": "http://localhost:8000"
       }
@@ -65,7 +65,7 @@ macOS / Linux:
   "mcpServers": {
     "paperflow": {
       "command": "npx",
-      "args": ["-y", "paperflow-mcp@0.3.0"],
+      "args": ["-y", "paperflow-mcp@0.3.1"],
       "env": {
         "PAPERFLOW_API_URL": "http://localhost:8000"
       }

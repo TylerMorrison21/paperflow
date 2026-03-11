@@ -1,6 +1,6 @@
 {
   "name": "paperflow-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP server that lets Claude process PDFs through a self-hosted PaperFlow backend with smart parser selection, token-saving summaries, and structured Markdown output.",
   "main": "src/index.js",
   "type": "module",

@@ -32,7 +32,7 @@ let parserCatalogCache = {
 };
 
 const server = new Server(
-  { name: 'paperflow-mcp', version: '0.3.0' },
+  { name: 'paperflow-mcp', version: '0.3.1' },
   { capabilities: { tools: {} } }
 );
 
