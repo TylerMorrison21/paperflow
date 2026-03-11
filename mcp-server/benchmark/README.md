@@ -10,8 +10,8 @@ Run paired tests on the same paper+prompt:
 
 ## CSV format
 
-Use `benchmark/results.csv` with the same columns as `benchmark/results.template.csv`.
-`results.csv` starts with sample rows; replace them with your real runs:
+Create your own `benchmark/results.csv` by copying `benchmark/results.template.csv`.
+Use the same columns and replace the placeholder rows with your real runs:
 
 - `case_id`: shared id for a paired comparison (example: `p1_q1`)
 - `mode`: `vision` or `mcp`
