@@ -214,10 +214,6 @@ Other parsers may work well for basic features (LaTeX normalization, header clea
 |---|---|---|
 | ![Source PDF](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/original_pdf.png) | ![Generic converter output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pymupdf_converted.png) | ![PaperFlow output](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow_converted.png) |
 
-Additional example:
-
-![Calligraphy comparison](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/caligraphy.jpg)
-
 ## What `enhance()` Does
 
 `enhance()` upgrades parser output into structured markdown with:
