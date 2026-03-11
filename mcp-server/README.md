@@ -1,19 +1,23 @@
 # PaperFlow MCP Server
 
-`paperflow-mcp` lets Claude Desktop send PDFs to a self-hosted PaperFlow-compatible backend.
+`paperflow-mcp` lets Claude Desktop send PDFs to a self-hosted PaperFlow backend and get back structured Markdown that is easier to reason over than raw PDF vision output.
 
-## Breaking Change
+## What Changed
 
-`paperflow-mcp@0.2.1` no longer targets the old hosted backend.
+`paperflow-mcp@0.3.0` is aligned with the new PaperFlow workflow:
 
-You must provide your own backend URL through `PAPERFLOW_API_URL`.
-If you do nothing, the MCP server assumes your backend is running at:
+- it targets your self-hosted PaperFlow backend
+- it can discover which parsers are available on that backend
+- it auto-selects the best available parser by default
+- it returns a token-saving summary by default instead of dumping full markdown into chat
+
+Default backend URL:
 
 ```text
 http://localhost:8000
 ```
 
-## What It Does
+## Why Use It
 
 When Claude reads PDFs directly with vision, it loses structure:
 
@@ -22,19 +26,19 @@ When Claude reads PDFs directly with vision, it loses structure:
 - tables lose row and column structure
 - citations become dead text
 
-PaperFlow converts that output into structured Markdown before Claude analyzes it.
+PaperFlow converts that output into structured Markdown first, then Claude can analyze a cleaner representation.
 
-## Self-Host the Backend
-
-Example:
+## Recommended Setup
 
 ```bash
 git clone https://github.com/TylerMorrison21/paperflow
 cd paperflow
 cp .env.example .env
-# Add your parser credentials or swap in a local parser
+pip install -r requirements.txt
 uvicorn api.main:app --port 8000
 ```
+
+Then point the MCP server at that backend.
 
 ## Claude Desktop Config
 
@@ -45,7 +49,7 @@ Windows:
   "mcpServers": {
     "paperflow": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "paperflow-mcp@0.2.1"],
+      "args": ["/c", "npx", "-y", "paperflow-mcp@0.3.0"],
       "env": {
         "PAPERFLOW_API_URL": "http://localhost:8000"
       }
@@ -61,7 +65,7 @@ macOS / Linux:
   "mcpServers": {
     "paperflow": {
       "command": "npx",
-      "args": ["-y", "paperflow-mcp@0.2.1"],
+      "args": ["-y", "paperflow-mcp@0.3.0"],
       "env": {
         "PAPERFLOW_API_URL": "http://localhost:8000"
       }
@@ -84,13 +88,46 @@ Restart Claude Desktop after updating the config.
 npm install -g paperflow-mcp
 ```
 
+## Best Parser Logic
+
+The MCP server can choose a parser for the user instead of making them remember backend details.
+
+Supported parser modes for `convert_pdf`:
+
+- `auto` (default): prefer `marker_local`, then `marker_api`, then `pymupdf`, then `mineru`
+- `best`: prefer highest-quality output
+- `local`: prefer local parsers first
+- `fast`: prefer the fastest local path
+- explicit parser id: `pymupdf`, `marker_api`, `marker_local`, `mineru`
+
+Use `list_parsers` first if you want to see exactly what your backend has configured.
+
+## Token-Saving Behavior
+
+By default, `convert_pdf` returns `response_mode="summary"`:
+
+- title / authors / top headings when available
+- parser used
+- markdown size
+- direct backend URLs for markdown and package download
+- a short preview
+
+This keeps Claude context smaller while still giving you precise converted output.
+Use `get_markdown_chunk` only when you need more of the document.
+
+You can also request:
+
+- `response_mode="preview"` for a longer preview
+- `response_mode="full"` to inline the markdown when it is short enough
+
 ## Usage
 
 Ask Claude normally:
 
-- "Summarize this paper" and attach a PDF
-- "Compare these two papers" and attach both PDFs
-- "Convert https://arxiv.org/pdf/2301.00001.pdf and extract key findings"
+- "Use PaperFlow to convert this PDF"
+- "Use PaperFlow with the best parser on this paper"
+- "Use PaperFlow in fast mode on this local PDF"
+- "List my available PaperFlow parsers first"
 
 You can also bypass attachment transport with:
 
@@ -106,7 +143,17 @@ Inputs:
 
 - `source`: PDF URL, base64 PDF payload, or absolute local PDF path
 - `filename`: optional display filename
+- `parser`: optional parser choice or shortcut (`auto`, `best`, `local`, `fast`)
+- `response_mode`: optional mode (`summary`, `preview`, `full`)
 - `inline_limit`: optional max inline markdown size
+
+### `list_parsers`
+
+Returns:
+
+- configured and non-configured backend parsers
+- setup notes from the backend
+- MCP parser shortcut guidance
 
 ### `get_markdown_chunk`
 
@@ -120,10 +167,11 @@ Inputs:
 
 ## Behavior Notes
 
-- Large conversions return a preview plus `job_id`
-- `get_markdown_chunk` can fetch the rest incrementally
-- If attachment bytes are truncated by Claude Desktop, the tool returns recovery instructions
-- If the MCP process restarts, it can refetch markdown from your backend by `job_id`
+- `convert_pdf` now defaults to a compact summary to save chat tokens
+- full markdown stays available through `get_markdown_chunk`
+- the MCP server stores recent markdown in memory and can also refetch by `job_id`
+- if attachment bytes are truncated by Claude Desktop, the tool returns recovery instructions
+- if the backend is down, the tool tells the user how to start it locally
 
 ## Local Development
 

@@ -1,7 +1,7 @@
 {
   "name": "paperflow-mcp",
-  "version": "0.2.1",
-  "description": "MCP server that lets Claude analyze academic PDFs through a self-hosted PaperFlow backend, preserving LaTeX equations, table structure, citation links, and multi-column reading order.",
+  "version": "0.3.0",
+  "description": "MCP server that lets Claude process PDFs through a self-hosted PaperFlow backend with smart parser selection, token-saving summaries, and structured Markdown output.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
