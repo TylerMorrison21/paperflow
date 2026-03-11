@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from api.config import DATA_DIR
 
@@ -78,4 +78,32 @@ def job_result(job_id: str):
     return PlainTextResponse(
         content=paper_md.read_text(encoding="utf-8"),
         media_type="text/markdown",
+    )
+
+
+@router.get("/api/jobs/{job_id}/package")
+def job_package(job_id: str):
+    """
+    - 200 application/zip             package exists, returns ZIP bundle
+    - 422 {"status":"failed", ...}    conversion failed, see error
+    - 404 {"status":"not_ready"}      still processing or no ZIP yet
+    """
+    job_dir = _safe_job_dir(job_id)
+
+    error_message = _read_job_error(job_dir)
+    if error_message:
+        return JSONResponse(
+            status_code=422,
+            content={"status": "failed", "error": error_message},
+        )
+
+    zip_files = sorted(job_dir.glob("*.zip"))
+    if not zip_files:
+        return JSONResponse(status_code=404, content={"status": "not_ready"})
+
+    zip_path = zip_files[0]
+    return FileResponse(
+        path=zip_path,
+        media_type="application/zip",
+        filename=zip_path.name,
     )

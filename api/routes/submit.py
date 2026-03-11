@@ -1,4 +1,6 @@
-import io
+﻿import io
+import json
+import shutil
 import uuid
 import hashlib
 import logging
@@ -9,7 +11,7 @@ from pathlib import Path
 from pypdf import PdfReader
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
 from api.models import SubmitResponse
-from api.config import DATA_DIR, MAX_FILE_SIZE_MB, MAX_PAGES, CONTACT_EMAIL, MCP_EMAIL_PREFIX
+from api.config import DATA_DIR, MAX_FILE_SIZE_MB, MAX_PAGES, MCP_EMAIL_PREFIX
 from api.services.marker import parse_pdf
 from api.services.postprocess import postprocess
 from api.services.packager import build_zip
@@ -19,7 +21,7 @@ from api.services.ratelimit import check_daily_limit, check_monthly_pages, check
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# In-memory hash → job_dir mapping for dedup
+# In-memory hash 鈫?job_dir mapping for dedup
 _hash_cache: dict[str, str] = {}
 
 _TITLE_BLACKLIST = {
@@ -377,6 +379,7 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
             # Validate cache: must have footnotes and valid title
             title = None
             has_footnotes = False
+            md_content = None
             with zipfile.ZipFile(cached_zip, 'r') as zf:
                 for name in zf.namelist():
                     if name.endswith('.md'):
@@ -385,16 +388,18 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
                         title = _extract_cached_title(md_content)
                         break
 
-            if title and has_footnotes and 'untitled' not in title.lower():
-                logger.info(f"Job {job_id}: Cache hit for {file_hash[:12]}…")
+            if title and has_footnotes and md_content and 'untitled' not in title.lower():
+                logger.info(f"Job {job_id}: Cache hit for {file_hash[:12]}")
+                cached_copy = job_dir / cached_zip.name
+                shutil.copy2(cached_zip, cached_copy)
+                (job_dir / "paper.md").write_text(md_content, encoding="utf-8")
                 if not email.startswith(MCP_EMAIL_PREFIX):
-                    await send_paper_email(email, title, cached_zip)
+                    await send_paper_email(email, title, cached_copy)
                     logger.info(f"Job {job_id}: Cached result emailed to {email}")
                 return
-            else:
-                # Stale cache — evict and reprocess
-                logger.info(f"Job {job_id}: Stale cache evicted for {file_hash[:12]}…")
-                _hash_cache.pop(file_hash, None)
+
+            logger.info(f"Job {job_id}: Stale cache evicted for {file_hash[:12]}")
+            _hash_cache.pop(file_hash, None)
 
         logger.info(f"Job {job_id}: Starting processing for {email}")
 
@@ -418,7 +423,10 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
         except (TypeError, ValueError):
             page_count = 1
 
-        record_submission(page_count, email=email)
+        record_submission(
+            page_count,
+            email="" if email.startswith(MCP_EMAIL_PREFIX) else email,
+        )
         logger.info(f"Job {job_id}: Recorded {page_count} pages")
 
         # 3. Resolve metadata quality before postprocessing/frontmatter
@@ -452,10 +460,9 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
 
         # Register in hash cache
         _hash_cache[file_hash] = str(job_dir)
-
-        # 6. Send email (skipped for MCP submissions)
+        # 6. Send email (skipped for local/MCP submissions)
         if email.startswith(MCP_EMAIL_PREFIX):
-            logger.info(f"Job {job_id}: MCP submission — skipping email")
+            logger.info(f"Job {job_id}: local/MCP submission, skipping email")
         else:
             logger.info(f"Job {job_id}: Sending email to {email}")
             await send_paper_email(email, title, zip_path)
@@ -463,6 +470,10 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
 
     except Exception as e:
         logger.error(f"Job {job_id}: Failed with error: {e}", exc_info=True)
+        (job_dir / "error.json").write_text(
+            json.dumps({"error": str(e)}, ensure_ascii=True, indent=2),
+            encoding="utf-8",
+        )
         if not email.startswith(MCP_EMAIL_PREFIX):
             try:
                 await send_failure_email(email, original_filename)
@@ -475,10 +486,11 @@ async def process_job(job_id: str, pdf_bytes: bytes, email: str, original_filena
 async def submit_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    email: str = Form(...)
+    email: str = Form("mcp@paperflow.local")
 ):
     """
-    Accept PDF + email, start async processing, return immediately.
+    Accept a PDF, start async processing, and return a job ID immediately.
+    Email is optional for self-hosted/local use.
     """
     # Validate file type
     if not file.filename.lower().endswith('.pdf'):
@@ -506,10 +518,14 @@ async def submit_pdf(
 
     if page_count > MAX_PAGES:
         logger.info(f"Job {job_id}: {page_count} pages exceeds limit of {MAX_PAGES}, sending limit email")
-        background_tasks.add_task(send_page_limit_email, email, file.filename, page_count)
+        if not email.startswith(MCP_EMAIL_PREFIX):
+            background_tasks.add_task(send_page_limit_email, email, file.filename, page_count)
         raise HTTPException(
             status_code=400,
-            detail=f"Free playground is limited to {MAX_PAGES} pages for quality testing. For full documents, batch processing, or API access, contact {CONTACT_EMAIL}"
+            detail=(
+                f"This PaperFlow instance is configured with a {MAX_PAGES}-page limit. "
+                f"Increase MAX_PAGES in your .env if you want to process larger PDFs."
+            )
         )
 
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
@@ -517,17 +533,36 @@ async def submit_pdf(
 
     # Only enforce rate limits for new PDFs (not cached duplicates)
     if not cached_zip:
-        allowed, _ = check_email_limit(email)
-        if not allowed:
-            raise HTTPException(status_code=429, detail="You've reached your daily limit of 3 papers. Come back tomorrow for more!")
+        if not email.startswith(MCP_EMAIL_PREFIX):
+            allowed, _ = check_email_limit(email)
+            if not allowed:
+                raise HTTPException(
+                    status_code=429,
+                    detail=(
+                        "This PaperFlow instance has reached its configured per-email daily limit. "
+                        "Increase PER_EMAIL_DAILY_LIMIT in your .env if needed."
+                    ),
+                )
 
         allowed, _ = check_daily_limit()
         if not allowed:
-            raise HTTPException(status_code=429, detail="PaperFlow is experiencing high demand right now. Please try again in a few hours — we'll be ready for you!")
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "This PaperFlow instance has reached its configured daily submission limit. "
+                    "Increase DAILY_SUBMISSION_LIMIT in your .env if needed."
+                ),
+            )
 
         allowed, _ = check_monthly_pages(page_count)
         if not allowed:
-            raise HTTPException(status_code=429, detail="PaperFlow is experiencing high demand right now. Please try again in a few hours — we'll be ready for you!")
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "This PaperFlow instance has reached its configured monthly page limit. "
+                    "Increase MONTHLY_PAGE_LIMIT in your .env if needed."
+                ),
+            )
 
     logger.info(f"Job {job_id}: Received PDF ({len(pdf_bytes)} bytes) for {email} [cached={cached_zip is not None}]")
 
@@ -536,5 +571,6 @@ async def submit_pdf(
 
     return SubmitResponse(
         job_id=job_id,
-        message="Processing. Check your inbox in 1-2 minutes."
+        message=(f"Processing. Poll /api/jobs/{job_id}/status, then fetch /api/jobs/{job_id}/result or /api/jobs/{job_id}/package.")
     )
+

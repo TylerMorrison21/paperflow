@@ -20,7 +20,54 @@ Project page: https://www.paperflowing.com
 pip install paperflow-postprocess
 ```
 
-## Quick Start
+## Recommended workflow
+
+If you want the best results with the least setup, use the self-hosted API with Datalab Marker.
+
+- Sign up at `datalab.to`
+- Add your `DATALAB_API_KEY` to `.env`
+- Run the backend locally
+- Send a PDF to the API
+- Download the processed markdown or zip package
+
+Datalab has a free credit tier, so most users can try this path without paying first.
+
+```bash
+git clone https://github.com/TylerMorrison21/paperflow
+cd paperflow
+cp .env.example .env
+# Add DATALAB_API_KEY to .env
+uvicorn api.main:app --port 8000
+```
+
+Submit a PDF:
+
+```bash
+curl -X POST http://localhost:8000/api/submit \
+  -F "file=@paper.pdf"
+```
+
+Poll for completion:
+
+```bash
+curl http://localhost:8000/api/jobs/<job_id>/status
+```
+
+Download the processed markdown:
+
+```bash
+curl http://localhost:8000/api/jobs/<job_id>/result -o paper.md
+```
+
+Download the markdown plus images package:
+
+```bash
+curl http://localhost:8000/api/jobs/<job_id>/package -o paperflow.zip
+```
+
+## Python package only
+
+Use the pip package when you already have raw markdown from another parser and only want PaperFlow's post-processing layer.
 
 ```python
 from paperflow_postprocess import enhance
@@ -47,52 +94,45 @@ markdown = enhance(
 print(markdown)
 ```
 
-## PDF Parsers - bring your own
+## PDF Parser compatibility
 
-PaperFlow is a **post-processing** layer. It enhances raw Markdown from any upstream PDF parser. You need to choose a parser:
+| Parser | Status | Notes |
+|--------|--------|-------|
+| Marker API (Datalab) | ✅ Fully tested | Recommended. Sign up at datalab.to |
+| Marker (self-hosted) | ✅ Fully tested | Same output format as API |
+| MinerU | ⚠️ Partial | LaTeX fixing works, footnotes may need tuning |
+| Docling | ⚠️ Partial | Basic cleanup works, links untested |
+| LlamaParse | ⚠️ Partial | Output format differs, YMMV |
+| Others | ❓ Unknown | PRs welcome to add parser adapters |
 
-### Option 1: Datalab Marker API (recommended, easiest)
+PaperFlow is built and tested against Marker's output format.
+Other parsers may work for basic features (LaTeX normalization,
+header cleanup) but footnote conversion and figure linking
+depend on Marker-specific formatting patterns.
 
-- Sign up at [datalab.to](https://www.datalab.to) - $25/month free credits
-- Cloud API, no GPU needed
-- Set `DATALAB_API_KEY` in your `.env`
-- PaperFlow's built-in `api/services/marker.py` calls this automatically
+If you use another parser and the output looks wrong, debug in this order:
 
-### Option 2: Marker (self-hosted, free)
-
-- [github.com/datalab-to/marker](https://github.com/datalab-to/marker)
-- Run locally with GPU (CUDA) or CPU
-- Free for orgs under $5M revenue
-- You'll need to modify `api/services/marker.py` to call your local endpoint
-
-### Option 3: MinerU (self-hosted, free)
-
-- [github.com/opendatalab/MinerU](https://github.com/opendatalab/MinerU)
-- Strong on Chinese docs, scientific papers, complex tables
-- Outputs Markdown + LaTeX - compatible with PaperFlow's postprocess
-- Needs GPU (~6GB VRAM minimum)
-- Replace `marker.py` with a MinerU client
-
-### Option 4: Docling, PyMuPDF4LLM, or any other parser
-
-- Any tool that outputs Markdown will work
-- Feed the raw Markdown into `paperflow_postprocess.enhance()` or save it and run it through the API pipeline
-
-### Using the pip package with any parser
+1. Check whether citations look like `[1]`, `[2]`, `[1-3]`
+2. Check whether figure captions look like `Fig. 3:` or `Figure 3:`
+3. Check whether table captions look like `Table 2:`
+4. Run the individual helpers one by one instead of `enhance()`
 
 ```python
-from paperflow_postprocess import enhance
+from paperflow_postprocess import (
+    fix_latex_delimiters,
+    clean_headers_footers,
+    convert_to_footnotes,
+    linkify_figures,
+    linkify_tables,
+)
 
-# Get raw markdown from ANY parser
-raw_md = my_parser.convert("paper.pdf")
-
-# Enhance with PaperFlow
-result = enhance(raw_md, images={}, metadata={"title": "My Paper"})
-
-# result has footnotes, fixed LaTeX, figure links, YAML frontmatter
+md = open("raw.md", encoding="utf-8").read()
+md = fix_latex_delimiters(md)
+md = clean_headers_footers(md)
+md = convert_to_footnotes(md)
+md = linkify_figures(md)
+md = linkify_tables(md)
 ```
-
-The whole point of PaperFlow is that **parsing is commoditized**. Marker, MinerU, LlamaParse, Docling, and PyMuPDF4LLM can all produce decent raw output. The post-processing layer is where the value is, and that is what PaperFlow does.
 
 ## Visual Comparison
 
