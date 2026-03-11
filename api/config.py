@@ -16,7 +16,7 @@ PER_USER_TRIAL_PAGE_LIMIT = int(os.environ.get("PER_USER_TRIAL_PAGE_LIMIT", "100
 MAX_FILE_SIZE_MB       = int(os.environ.get("MAX_FILE_SIZE_MB", "15"))
 MAX_PAGES              = int(os.environ.get("MAX_PAGES", "15"))
 CONTACT_EMAIL          = os.environ.get("CONTACT_EMAIL", "support@paperflowing.com")
-MCP_EMAIL_PREFIX       = "mcp@"
+MCP_EMAIL_PREFIX       = os.environ.get("MCP_EMAIL_PREFIX", "mcp@")
 PRO_EMAILS = {
     email.strip().lower()
     for email in os.environ.get("PRO_EMAILS", "").split(",")

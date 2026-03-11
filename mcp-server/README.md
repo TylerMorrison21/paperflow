@@ -1,102 +1,141 @@
 # PaperFlow MCP Server
 
-**Let Claude actually understand academic PDFs — not just look at them.**
+`paperflow-mcp` lets Claude Desktop send PDFs to a self-hosted PaperFlow-compatible backend.
 
-When you send a PDF directly to Claude, it uses vision to "read" page images.
-This is slow, expensive, and breaks on:
-- LaTeX equations (rendered as pixels, not parseable math)
-- Multi-column layouts (reading order gets scrambled)
-- Tables (structure lost, cells merged incorrectly)
-- Citations and references (no linking, no context)
+## Breaking Change
 
-PaperFlow converts your PDF to clean, structured Markdown *before* Claude sees it.
-Claude gets text instead of images — **~80% fewer tokens, significantly better analysis.**
+`paperflow-mcp@0.2.1` no longer targets the old hosted backend.
 
-## Quick Start
+You must provide your own backend URL through `PAPERFLOW_API_URL`.
+If you do nothing, the MCP server assumes your backend is running at:
 
-Choose the config for your OS and add it to `claude_desktop_config.json`.
+```text
+http://localhost:8000
+```
+
+## What It Does
+
+When Claude reads PDFs directly with vision, it loses structure:
+
+- LaTeX equations become pixels
+- multi-column reading order breaks
+- tables lose row and column structure
+- citations become dead text
+
+PaperFlow converts that output into structured Markdown before Claude analyzes it.
+
+## Self-Host the Backend
+
+Example:
+
+```bash
+git clone https://github.com/TylerMorrison21/paperflow
+cd paperflow
+cp .env.example .env
+# Add your parser credentials or swap in a local parser
+uvicorn api.main:app --port 8000
+```
+
+## Claude Desktop Config
 
 Windows:
+
 ```json
 {
   "mcpServers": {
     "paperflow": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "paperflow-mcp@0.1.5"]
+      "args": ["/c", "npx", "-y", "paperflow-mcp@0.2.1"],
+      "env": {
+        "PAPERFLOW_API_URL": "http://localhost:8000"
+      }
     }
   }
 }
 ```
 
-Mac/Linux:
+macOS / Linux:
+
 ```json
 {
   "mcpServers": {
     "paperflow": {
       "command": "npx",
-      "args": ["-y", "paperflow-mcp@0.1.5"]
+      "args": ["-y", "paperflow-mcp@0.2.1"],
+      "env": {
+        "PAPERFLOW_API_URL": "http://localhost:8000"
+      }
     }
   }
 }
 ```
 
-Restart Claude Desktop. That's it.
+Optional environment variables:
 
-## How to Use
+- `PAPERFLOW_API_URL`: backend base URL, default `http://localhost:8000`
+- `PAPERFLOW_EMAIL`: email value sent to the backend, default `mcp@paperflow.local`
+- `PAPERFLOW_TIMEOUT_MS`: conversion timeout in milliseconds
 
-Just talk to Claude naturally:
+Restart Claude Desktop after updating the config.
 
-- "Summarize this paper" + attach PDF
-- "What methodology does this paper use?" + attach PDF
-- "Compare the results in these two papers" + attach PDFs
-- "Convert https://arxiv.org/pdf/2301.00001.pdf and extract the key findings"
+## Install
 
-Claude will automatically call PaperFlow to convert the PDF,
-then analyze the structured Markdown. You never leave the conversation.
+```bash
+npm install -g paperflow-mcp
+```
 
-For very large PDFs, the MCP server now returns a preview plus `job_id` first,
-then streams markdown in chunks via `get_markdown_chunk` to avoid Claude chat length errors.
-For scanned/image-only PDFs, PaperFlow now auto-retries with OCR. If OCR still cannot extract usable text,
-the tool returns a clear conversion failure instead of fabricated markdown.
+## Usage
 
-If Claude Desktop truncates attachment bytes, `paperflow-mcp@0.1.5` now returns actionable recovery steps.
-You can also bypass attachment transport by passing a local path in `source`, e.g.:
-- `C:\Users\you\Desktop\paper.pdf`
-- `file:///C:/Users/you/Desktop/paper.pdf`
+Ask Claude normally:
 
-## What happens when AI reads your PDF directly
+- "Summarize this paper" and attach a PDF
+- "Compare these two papers" and attach both PDFs
+- "Convert https://arxiv.org/pdf/2301.00001.pdf and extract key findings"
 
-| Content Type | Direct PDF (vision) | Via PaperFlow |
-|---|---|---|
-| **Equations** | Seen as images — can't reason or verify | Parsed as LaTeX — fully computable |
-| **Multi-column** | Sentences from different columns interleaved | Correct reading order preserved |
-| **Tables** | Numbers without structure | Markdown tables with rows and columns |
-| **Citations [1,2]** | Plain text, no connection to references | Linked footnotes [^1][^2] with sources |
-| **Token cost** | ~50k tokens/paper | ~20k tokens/paper |
+You can also bypass attachment transport with:
 
-## What Gets Preserved
+- an absolute local path like `C:\Users\you\Desktop\paper.pdf`
+- a `file:///` path
+- a direct PDF URL
 
-- **LaTeX math**: `\alpha + \beta^2` → `$\alpha + \beta^2$`
-- **Display equations**: Properly wrapped in `$$...$$` blocks
-- **Tables**: Converted to GitHub-flavored Markdown pipe tables
-- **Citations**: `[1, 2, 3]` → `[^1][^2][^3]` with full reference entries
-- **Figure/table references**: Linked to captions
-- **Document structure**: Title, authors, date in YAML frontmatter
+## Tools
 
-## Limits
+### `convert_pdf`
 
-- Free trial: 15 pages per document, 3 documents/day, up to 100 total converted pages per email
-- Need more? Email support@paperflowing.com and your `PAPERFLOW_EMAIL` can be added to Pro
+Inputs:
 
-## Verify Token Savings
+- `source`: PDF URL, base64 PDF payload, or absolute local PDF path
+- `filename`: optional display filename
+- `inline_limit`: optional max inline markdown size
 
-Use the built-in benchmark kit to prove savings on your own workload:
+### `get_markdown_chunk`
+
+Use this when the markdown is too large for one chat response.
+
+Inputs:
+
+- `job_id`
+- `start`
+- `length`
+
+## Behavior Notes
+
+- Large conversions return a preview plus `job_id`
+- `get_markdown_chunk` can fetch the rest incrementally
+- If attachment bytes are truncated by Claude Desktop, the tool returns recovery instructions
+- If the MCP process restarts, it can refetch markdown from your backend by `job_id`
+
+## Local Development
+
+```bash
+cd mcp-server
+npm install
+npm start
+```
+
+## Benchmark
 
 ```bash
 cp benchmark/results.template.csv benchmark/results.csv
 npm run bench:report
 ```
-
-For full instructions, see `benchmark/README.md`.
-
-## How It Works

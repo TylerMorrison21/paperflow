@@ -5,6 +5,7 @@ api/.env
 
 # API data (runtime storage)
 api/data/
+data/
 
 # Frontend build
 frontend/.next/
@@ -17,11 +18,13 @@ outputs/
 
 # Python
 __pycache__/
+pycache/
 *.pyc
 *.pyo
 *.egg-info/
 dist/
 build/
+*.zip
 
 # IDE
 .vscode/
@@ -32,3 +35,4 @@ build/
 Thumbs.db
 .vercel
 .env*.local
+railway.toml

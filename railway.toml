@@ -1,8 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "python -c \"import os; import uvicorn; uvicorn.run('api.main:app', host='0.0.0.0', port=int(os.getenv('PORT','8000')), workers=1)\""
-healthcheckPath = "/health"
-healthcheckTimeout = 60
-restartPolicyType = "on_failure"

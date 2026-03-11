@@ -7,44 +7,36 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const BACKEND       = 'https://paperflow-production-daf5.up.railway.app';
-const MCP_EMAIL     = 'mcp@paperflowing.com';
-const USER_EMAIL    = (process.env.PAPERFLOW_EMAIL || MCP_EMAIL).trim().toLowerCase();
-const POLL_INTERVAL = 3_000;    // ms between status polls
-const DEFAULT_TIMEOUT = 360_000;  // 6 minutes for OCR-heavy docs
+const DEFAULT_API_URL = 'http://localhost:8000';
+const API_BASE_URL = normalizeApiBaseUrl(process.env.PAPERFLOW_API_URL || DEFAULT_API_URL);
+const MCP_EMAIL = 'mcp@paperflow.local';
+const USER_EMAIL = (process.env.PAPERFLOW_EMAIL || MCP_EMAIL).trim().toLowerCase();
+const POLL_INTERVAL = 3_000;
+const DEFAULT_TIMEOUT = 360_000;
 const parsedTimeout = Number.parseInt(process.env.PAPERFLOW_TIMEOUT_MS || '', 10);
 const TIMEOUT = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : DEFAULT_TIMEOUT;
-const MAX_INLINE_CHARS   = 18_000;
-const PREVIEW_CHARS      = 2_000;
+const MAX_INLINE_CHARS = 18_000;
+const PREVIEW_CHARS = 2_000;
 const DEFAULT_CHUNK_SIZE = 12_000;
-const MAX_CHUNK_SIZE     = 18_000;
-const MIN_CHUNK_SIZE     = 500;
+const MAX_CHUNK_SIZE = 18_000;
+const MIN_CHUNK_SIZE = 500;
 const TRUNCATED_PDF_HINT_BYTES = 20_000;
-const STORE_TTL_MS       = 30 * 60 * 1000;
-const MAX_STORE_ITEMS    = 32;
-const markdownStore      = new Map();
+const STORE_TTL_MS = 30 * 60 * 1_000;
+const MAX_STORE_ITEMS = 32;
+const markdownStore = new Map();
 
-// ---------------------------------------------------------------------------
-// Server setup
-// ---------------------------------------------------------------------------
 const server = new Server(
-  { name: 'paperflow-mcp', version: '0.1.5' },
+  { name: 'paperflow-mcp', version: '0.2.1' },
   { capabilities: { tools: {} } }
 );
 
-// ---------------------------------------------------------------------------
-// Tool list
-// ---------------------------------------------------------------------------
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: 'convert_pdf',
       description:
-        'Convert academic PDFs to structured Markdown so Claude can accurately ' +
-        'analyze equations, tables, and citations. When PDFs are sent as images, ' +
-        'Claude can\'t parse LaTeX, loses table structure, and scrambles multi-column ' +
-        'reading order. This tool fixes that. Also reduces token usage by ~80%. ' +
-        'Works with any PDF URL or attached file.',
+        'Convert academic PDFs to structured Markdown through a self-hosted PaperFlow backend ' +
+        'so Claude can accurately analyze equations, tables, citations, and multi-column layouts.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -100,9 +92,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// ---------------------------------------------------------------------------
-// Tool execution
-// ---------------------------------------------------------------------------
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const args = request.params.arguments ?? {};
 
@@ -132,15 +121,15 @@ async function handleConvertPdf(args) {
   const localPath = normalizeLocalPdfPath(source);
   const isLocalPath = Boolean(localPath);
 
-  // -- 1. Resolve PDF bytes --------------------------------------------------
   let pdfBuffer;
   let likelyTruncatedInput = false;
+
   if (isUrl) {
     console.error(`[paperflow] Fetching PDF from URL: ${source}`);
     let res;
     try {
       res = await fetch(source);
-    } catch (e) {
+    } catch (error) {
       return text(`Could not download PDF from ${source}. Check the URL and try again.`);
     }
     if (!res.ok) {
@@ -151,7 +140,7 @@ async function handleConvertPdf(args) {
     console.error(`[paperflow] Reading local PDF: ${localPath}`);
     try {
       pdfBuffer = await fs.readFile(localPath);
-    } catch (e) {
+    } catch (error) {
       return text(`Could not read local PDF from ${localPath}. Check the path and try again.`);
     }
     if (!pdfBuffer.length) {
@@ -189,19 +178,14 @@ async function handleConvertPdf(args) {
     console.error(`[paperflow] Warning: very small PDF payload (${pdfBuffer.length} bytes)`);
   }
 
-  // -- 2. Submit to backend --------------------------------------------------
-  console.error('[paperflow] Submitting to PaperFlow backend');
-  let job_id;
+  console.error(`[paperflow] Submitting to backend: ${API_BASE_URL}`);
+  let jobId;
   try {
     const form = new FormData();
-    form.append(
-      'file',
-      new Blob([pdfBuffer], { type: 'application/pdf' }),
-      filename
-    );
+    form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), filename);
     form.append('email', USER_EMAIL);
 
-    const submitRes = await fetch(`${BACKEND}/api/submit`, {
+    const submitRes = await fetch(`${API_BASE_URL}/api/submit`, {
       method: 'POST',
       body: form,
     });
@@ -210,27 +194,26 @@ async function handleConvertPdf(args) {
       const data = await submitRes.json().catch(() => ({}));
       return text(
         data.detail ||
-        'PaperFlow is at capacity. Free tier: 15 pages/doc, 3 docs/day. For higher limits: support@paperflowing.com'
+        'PaperFlow backend rejected the request with 429. Check your self-hosted limits and try again.'
       );
     }
 
     if (submitRes.status === 400) {
       const data = await submitRes.json().catch(() => ({}));
-      return text(data.detail || 'Submission rejected by PaperFlow (400).');
+      return text(data.detail || 'Submission rejected by the PaperFlow backend (400).');
     }
 
     if (!submitRes.ok) {
-      return text('Could not connect to PaperFlow service. Try again in a moment.');
+      return text(backendUnavailableText());
     }
 
     const body = await submitRes.json();
-    job_id = body.job_id;
-    console.error(`[paperflow] Job submitted: ${job_id}`);
-  } catch (e) {
-    return text('Could not connect to PaperFlow service. Try again in a moment.');
+    jobId = body.job_id;
+    console.error(`[paperflow] Job submitted: ${jobId}`);
+  } catch (error) {
+    return text(backendUnavailableText());
   }
 
-  // -- 3. Poll for completion ------------------------------------------------
   console.error('[paperflow] Polling for result...');
   const deadline = Date.now() + TIMEOUT;
 
@@ -239,13 +222,13 @@ async function handleConvertPdf(args) {
 
     let statusRes;
     try {
-      statusRes = await fetch(`${BACKEND}/api/jobs/${job_id}/status`);
-    } catch (e) {
-      return text('Could not connect to PaperFlow service. Try again in a moment.');
+      statusRes = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/status`);
+    } catch (error) {
+      return text(backendUnavailableText());
     }
 
     if (!statusRes.ok) {
-      return text('Could not connect to PaperFlow service. Try again in a moment.');
+      return text(backendUnavailableText());
     }
 
     const status = await statusRes.json().catch(() => ({}));
@@ -279,8 +262,9 @@ async function handleConvertPdf(args) {
       );
     }
 
-    if (status.status === 'done') break;
-    // 'processing' 鈫?keep polling
+    if (status.status === 'done') {
+      break;
+    }
   }
 
   if (Date.now() >= deadline) {
@@ -290,32 +274,31 @@ async function handleConvertPdf(args) {
     );
   }
 
-  // -- 4. Fetch result -------------------------------------------------------
-  console.error(`[paperflow] Fetching result for job ${job_id}`);
+  console.error(`[paperflow] Fetching result for job ${jobId}`);
   let markdown;
   try {
-    const resultRes = await fetch(`${BACKEND}/api/jobs/${job_id}/result`);
+    const resultRes = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/result`);
     if (!resultRes.ok) {
-      return text('Could not connect to PaperFlow service. Try again in a moment.');
+      return text(backendUnavailableText());
     }
     markdown = await resultRes.text();
-  } catch (e) {
-    return text('Could not connect to PaperFlow service. Try again in a moment.');
+  } catch (error) {
+    return text(backendUnavailableText());
   }
 
   console.error('[paperflow] Result received, preparing output');
 
-  // -- 5. Return with metadata header ----------------------------------------
   const sourceLabel = isUrl ? source : isLocalPath ? localPath : filename;
-  saveMarkdown(job_id, markdown, sourceLabel);
+  saveMarkdown(jobId, markdown, sourceLabel);
 
   let output;
   if (markdown.length <= inlineLimit) {
     output = [
       '---',
       `Source: ${sourceLabel}`,
-      `Job ID: ${job_id}`,
-      'Converted by: PaperFlow (paperflowing.com)',
+      `Job ID: ${jobId}`,
+      `Backend: ${API_BASE_URL}`,
+      'Converted by: PaperFlow',
       'Note: LaTeX formulas use $...$ and $$...$$ syntax. Citations are [^N] footnotes.',
       '---',
       '',
@@ -326,14 +309,15 @@ async function handleConvertPdf(args) {
     output = [
       '---',
       `Source: ${sourceLabel}`,
-      `Job ID: ${job_id}`,
+      `Job ID: ${jobId}`,
       `Markdown size: ${markdown.length} characters`,
-      'Converted by: PaperFlow (paperflowing.com)',
+      `Backend: ${API_BASE_URL}`,
+      'Converted by: PaperFlow',
       '',
       'The markdown is too long for a single chat response.',
       'Use get_markdown_chunk to fetch it in parts.',
-      `Suggested next call: {"job_id":"${job_id}","start":0,"length":${DEFAULT_CHUNK_SIZE}}`,
-      `Direct markdown URL: ${BACKEND}/api/jobs/${job_id}/result`,
+      `Suggested next call: {"job_id":"${jobId}","start":0,"length":${DEFAULT_CHUNK_SIZE}}`,
+      `Direct markdown URL: ${API_BASE_URL}/api/jobs/${jobId}/result`,
       '---',
       '',
       'Preview:',
@@ -392,9 +376,6 @@ async function handleGetMarkdownChunk(args) {
   return text(output);
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function normalizeLocalPdfPath(input) {
   if (typeof input !== 'string') return null;
   const value = input.trim();
@@ -403,7 +384,7 @@ function normalizeLocalPdfPath(input) {
   if (value.startsWith('file://')) {
     try {
       return fileURLToPath(value);
-    } catch (e) {
+    } catch (error) {
       return null;
     }
   }
@@ -423,10 +404,23 @@ function normalizeLocalPdfPath(input) {
   return null;
 }
 
+function normalizeApiBaseUrl(input) {
+  const value = typeof input === 'string' ? input.trim() : '';
+  if (!value) return DEFAULT_API_URL;
+  return value.replace(/\/+$/, '');
+}
+
 function looksLikeBase64(value) {
   if (typeof value !== 'string' || !value) return false;
   if (value.length % 4 !== 0) return false;
   return /^[A-Za-z0-9+/]*={0,2}$/.test(value);
+}
+
+function backendUnavailableText() {
+  return (
+    `Could not connect to the PaperFlow backend at ${API_BASE_URL}. ` +
+    'Check PAPERFLOW_API_URL and make sure your self-hosted backend is running.'
+  );
 }
 
 function text(str) {
@@ -458,9 +452,8 @@ async function getStoredMarkdown(jobId) {
     return cached;
   }
 
-  // Fallback: if process restarted, try refetching from backend by job_id.
   try {
-    const res = await fetch(`${BACKEND}/api/jobs/${jobId}/result`);
+    const res = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/result`);
     if (!res.ok) return null;
     const markdown = await res.text();
     if (!markdown) return null;
@@ -473,7 +466,7 @@ async function getStoredMarkdown(jobId) {
     markdownStore.set(jobId, record);
     pruneStore();
     return record;
-  } catch (e) {
+  } catch (error) {
     return null;
   }
 }
@@ -500,10 +493,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ---------------------------------------------------------------------------
-// Start
-// ---------------------------------------------------------------------------
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error('[paperflow] MCP server started');
-
+console.error(`[paperflow] API base URL: ${API_BASE_URL}`);

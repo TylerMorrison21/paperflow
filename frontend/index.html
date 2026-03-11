@@ -3,351 +3,707 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PaperFlow</title>
+  <title>PaperFlow | Open-Source PDF Post-Processing</title>
+  <meta
+    name="description"
+    content="PaperFlow is an open-source post-processing layer that turns raw PDF-to-Markdown output into structured knowledge."
+  />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap");
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a;
+      --panel: rgba(16, 18, 17, 0.84);
+      --panel-strong: #111514;
+      --panel-soft: #0d100f;
+      --border: rgba(82, 92, 86, 0.34);
+      --border-strong: rgba(16, 185, 129, 0.32);
+      --text: #eef2ee;
+      --muted: #9ba5a0;
+      --soft: #728078;
+      --accent: #10b981;
+      --accent-strong: #34d399;
+      --accent-ink: #032117;
+      --shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+      --radius: 22px;
+      --mono: "JetBrains Mono", "Fira Mono", Consolas, monospace;
+      --sans: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
-      background: #0a0a0a;
-      color: #e0e0e0;
-      font-family: 'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 26%),
+        linear-gradient(180deg, #090909 0%, #0a0a0a 48%, #070808 100%);
+      color: var(--text);
+      font-family: var(--sans);
       min-height: 100vh;
-      display: flex;
+      line-height: 1.55;
+      padding: 32px 20px 80px;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
+      opacity: 0.35;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    code,
+    pre,
+    .eyebrow,
+    .stat-value,
+    .tab-button,
+    .cta,
+    .pill {
+      font-family: var(--mono);
+    }
+
+    .page {
+      margin: 0 auto;
+      max-width: 1180px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notice {
       align-items: center;
-      justify-content: center;
-      padding: 24px;
+      background: rgba(11, 17, 14, 0.78);
+      border: 1px solid rgba(16, 185, 129, 0.24);
+      border-radius: 999px;
+      color: var(--accent-strong);
+      display: inline-flex;
+      font-size: 0.78rem;
+      gap: 10px;
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
+      padding: 10px 16px;
+      text-transform: uppercase;
     }
 
-    .container {
-      width: 100%;
-      max-width: 520px;
+    .notice::before {
+      background: var(--accent);
+      border-radius: 50%;
+      content: "";
+      display: inline-block;
+      height: 9px;
+      width: 9px;
     }
 
-    #dropzone {
-      border: 1.5px dashed #333;
-      border-radius: 6px;
-      padding: 40px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+    .hero {
+      background: linear-gradient(180deg, rgba(14, 16, 15, 0.88), rgba(9, 10, 10, 0.78));
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      padding: 36px;
+      position: relative;
+    }
+
+    .hero::after {
+      background:
+        linear-gradient(135deg, rgba(16, 185, 129, 0.18), transparent 40%),
+        linear-gradient(315deg, rgba(255, 255, 255, 0.06), transparent 28%);
+      content: "";
+      inset: 0;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .hero-grid {
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      color: var(--accent-strong);
+      display: inline-block;
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 18px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 4vw, 4.8rem);
       margin-bottom: 16px;
-      font-size: 0.875rem;
-      color: #666;
+      max-width: 12ch;
     }
 
-    #dropzone.dragover {
-      border-color: #e0e0e0;
-      background: #111;
-      color: #e0e0e0;
+    .lede {
+      color: var(--muted);
+      font-size: clamp(1rem, 1.5vw, 1.18rem);
+      margin-bottom: 28px;
+      max-width: 68ch;
     }
 
-    #dropzone.has-file {
-      border-color: #555;
-      color: #e0e0e0;
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 18px;
     }
 
-    #file-input {
-      display: none;
+    .cta {
+      align-items: center;
+      border-radius: 999px;
+      display: inline-flex;
+      font-size: 0.9rem;
+      gap: 10px;
+      padding: 14px 18px;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
     }
 
-    .file-hint {
-      font-size: 0.75rem;
-      color: #444;
-      margin-top: 6px;
+    .cta:hover {
+      transform: translateY(-1px);
     }
 
-    input[type="email"] {
-      width: 100%;
-      background: #111;
-      border: 1.5px solid #333;
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-family: inherit;
-      font-size: 0.875rem;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    input[type="email"]:focus {
-      border-color: #666;
-    }
-
-    input[type="email"]::placeholder {
-      color: #444;
-    }
-
-    button[type="submit"] {
-      width: 100%;
-      background: #e0e0e0;
-      color: #0a0a0a;
-      border: none;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 0.875rem;
+    .cta.primary {
+      background: var(--accent);
+      color: var(--accent-ink);
       font-weight: 600;
-      padding: 13px;
+    }
+
+    .cta.secondary {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text);
+    }
+
+    .hero-meta {
+      color: var(--soft);
+      font-size: 0.9rem;
+    }
+
+    .hero-aside {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card,
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .mini-card {
+      background: rgba(9, 13, 11, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .mini-card h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .mini-card p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .mini-card pre {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 14px;
+      color: #b8f4d7;
+      font-size: 0.8rem;
+      margin-top: 14px;
+      overflow-x: auto;
+      padding: 14px;
+    }
+
+    .section {
+      margin-top: 24px;
+      padding: 30px;
+    }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      max-width: 760px;
+    }
+
+    .section-title h2 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      margin-bottom: 8px;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      max-width: 68ch;
+    }
+
+    .pill {
+      align-self: flex-start;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 999px;
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      padding: 10px 12px;
+    }
+
+    .comparison {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .comparison-card {
+      background: linear-gradient(180deg, rgba(13, 14, 14, 0.96), rgba(9, 10, 10, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .comparison-card.good {
+      border-color: rgba(16, 185, 129, 0.32);
+      box-shadow: inset 0 1px 0 rgba(16, 185, 129, 0.12);
+    }
+
+    .comparison-label {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      padding: 16px 18px;
+      text-transform: uppercase;
+    }
+
+    .comparison-card.good .comparison-label {
+      color: var(--accent-strong);
+    }
+
+    .comparison-card pre {
+      color: #cfd6d2;
+      font-size: 0.88rem;
+      min-height: 280px;
+      overflow-x: auto;
+      padding: 18px;
+      white-space: pre-wrap;
+    }
+
+    .comparison-card.good pre {
+      color: #d9fce9;
+    }
+
+    .comparison-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 18px;
+      text-align: center;
+    }
+
+    .tabs {
+      display: grid;
+      gap: 18px;
+    }
+
+    .tab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tab-button {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: var(--muted);
       cursor: pointer;
-      transition: background 0.15s;
+      font-size: 0.84rem;
+      padding: 12px 14px;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
     }
 
-    button[type="submit"]:hover:not(:disabled) {
-      background: #fff;
+    .tab-button[aria-selected="true"] {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--accent-strong);
     }
 
-    button[type="submit"]:disabled {
-      background: #333;
-      color: #666;
-      cursor: not-allowed;
-    }
-
-    #success {
-      text-align: center;
-      padding: 40px 0;
-    }
-
-    #success .check {
-      font-size: 1.5rem;
-      margin-bottom: 16px;
-    }
-
-    #success p {
-      color: #888;
-      font-size: 0.875rem;
-      line-height: 1.6;
-    }
-
-    #error-msg {
-      color: #e05c5c;
-      font-size: 0.8rem;
-      margin-top: 10px;
+    .tab-panel {
       display: none;
+      gap: 18px;
     }
 
-    #error-msg.soft {
-      color: #c9a227;
+    .tab-panel.active {
+      display: grid;
     }
 
-    .progress-text {
-      color: #666;
-      font-size: 0.8rem;
-      text-align: center;
-      margin-top: 10px;
-      display: none;
+    .panel-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1.15fr 0.85fr;
+    }
+
+    .panel-copy p,
+    .panel-copy li {
+      color: var(--muted);
+    }
+
+    .panel-copy ul {
+      display: grid;
+      gap: 10px;
+      list-style: none;
+      margin-top: 14px;
+    }
+
+    .code-block {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .code-label {
+      border-bottom: 1px solid rgba(16, 185, 129, 0.12);
+      color: var(--accent-strong);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      padding: 12px 14px;
+      text-transform: uppercase;
+    }
+
+    .code-block pre {
+      color: #d2f7e4;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      padding: 16px;
+    }
+
+    .parser-table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 760px;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 12px;
+      text-align: left;
+    }
+
+    th {
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .tagline {
+      color: var(--accent-strong);
+      font-size: 1rem;
+      margin-top: 18px;
+    }
+
+    .pipeline-grid,
+    .stats-grid,
+    .footer-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .pipeline-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .pipeline-step,
+    .stat-card {
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .step-index {
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .pipeline-step h3,
+    .stat-card h3 {
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+
+    .pipeline-step p,
+    .stat-card p,
+    footer p {
+      color: var(--muted);
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stat-value {
+      color: var(--accent-strong);
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+
+    footer.section {
+      padding-bottom: 26px;
+    }
+
+    .footer-grid {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .footer-link {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      color: var(--text);
+      padding: 10px 12px;
+    }
+
+    .footer-link:hover {
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--accent-strong);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .panel-grid,
+      .pipeline-grid,
+      .stats-grid,
+      .footer-grid,
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-card pre {
+        min-height: 220px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 18px 14px 56px;
+      }
+
+      .hero,
+      .section {
+        padding: 22px;
+      }
+
+      h1 {
+        max-width: none;
+      }
+
+      .notice,
+      .cta,
+      .tab-button {
+        width: 100%;
+      }
+
+      .cta-row {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <main class="page">
+    <div class="notice">Playground is shut down. PaperFlow is fully open-source.</div>
 
-    <!-- 1. Hero -->
-    <h1 style="
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #e0e0e0;
-      margin: 0 0 0.5rem 0;
-      line-height: 1.3;
-      letter-spacing: -0.01em;
-    ">Drop a PDF. Get research-ready Markdown —<br>tables, formulas, and references intact.</h1>
-
-    <p style="
-      color: #666;
-      font-size: 0.95rem;
-      margin: 0 0 2rem 0;
-      line-height: 1.5;
-    ">The only PDF&rarr;Markdown pipeline that outputs truly structured files &mdash; working footnotes, LaTeX equations, figure links, and YAML metadata.<br>Ready for Obsidian, Notion, RAG pipelines, or any tool in your stack.</p>
-
-    <div style="
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin: -0.8rem 0 1.6rem 0;
-    ">
-      <a href="#form-wrapper" style="
-        display: inline-block;
-        padding: 0.55rem 0.9rem;
-        border-radius: 6px;
-        border: 1px solid #7c8aff;
-        color: #7c8aff;
-        text-decoration: none;
-        font-size: 0.8rem;
-        font-weight: 600;
-      ">Try Free Playground First</a>
-      <a href="#mcp-install" style="
-        display: inline-block;
-        padding: 0.55rem 0.9rem;
-        border-radius: 6px;
-        border: 1px solid #2b2b40;
-        color: #9a9ac0;
-        text-decoration: none;
-        font-size: 0.8rem;
-      ">Then install MCP if it works for you</a>
-    </div>
-
-    <!-- 2 + 3. Playground tag + Upload area -->
-    <div id="form-wrapper">
-      <form id="upload-form">
-        <p style="
-          color: #444;
-          font-size: 0.72rem;
-          text-align: center;
-          margin-bottom: 0.5rem;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-        ">Free Playground &middot; 15 pages max &middot; 3 free conversions/day</p>
-
-        <div id="dropzone">
-          <div id="dropzone-label">Drag &amp; drop your PDF here<br><span class="file-hint">or click to browse</span></div>
-          <input type="file" id="file-input" accept=".pdf" />
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Open-Source PDF Post-Processing</span>
+          <h1>PDF parsers give you text. PaperFlow gives you knowledge.</h1>
+          <p class="lede">
+            Open-source post-processing layer that turns raw PDF-&gt;Markdown into structured knowledge
+            with working footnotes, LaTeX equations, figure links, and YAML metadata.
+          </p>
+          <div class="cta-row">
+            <a class="cta primary" href="https://github.com/TylerMorrison21/paperflow" target="_blank" rel="noreferrer">
+              Star on GitHub
+            </a>
+            <a class="cta secondary" href="https://pypi.org/project/paperflow-postprocess/" target="_blank" rel="noreferrer">
+              pip install paperflow-postprocess
+            </a>
+          </div>
+          <p class="hero-meta">
+            Static project page. No upload form. No paid playground. Bring your own parser, run the pipeline yourself.
+          </p>
         </div>
 
-        <input type="email" id="email-input" placeholder="your@email.com" required />
-
-        <button type="submit" id="submit-btn">Process</button>
-        <div id="error-msg"></div>
-        <div class="progress-text" id="progress-text">Uploading…</div>
-      </form>
-    </div>
-
-    <!-- 5. Before/After comparison -->
-    <div style="margin-top: 3rem; padding: 0 0.5rem;">
-      <h2 style="
-        color: #888;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin: 0 0 1rem 0;
-        text-align: center;
-      ">What you get</h2>
-
-      <div style="
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        max-width: 700px;
-        margin: 0 auto;
-      ">
-        <!-- Before -->
-        <div style="
-          background: #111;
-          border: 1px solid #1a1a1a;
-          border-radius: 6px;
-          padding: 1rem;
-        ">
-          <p style="color: #555; font-size: 0.7rem; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.05em;">PDF Input</p>
-          <pre style="color: #666; font-size: 0.75rem; margin: 0; line-height: 1.6; white-space: pre-wrap;">E = mc² (rendered as image)
-[1, 2] Author et al. (2023)
-Table 3: Results...
-  col1  col2  col3
-  0.95  0.87  0.92</pre>
-        </div>
-
-        <!-- After -->
-        <div style="
-          background: #0d0d1a;
-          border: 1px solid #1a1a2e;
-          border-radius: 6px;
-          padding: 1rem;
-        ">
-          <p style="color: #7c8aff; font-size: 0.7rem; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Markdown Output</p>
-          <pre style="color: #9a9ac0; font-size: 0.75rem; margin: 0; line-height: 1.6; white-space: pre-wrap;">$$E = mc^2$$
-[^1][^2] Author et al. (2023)
-
-| Metric | Precision | Recall | F1 |
-|--------|-----------|--------|----|
-| Model  | 0.95      | 0.87   | 0.92 |
-
-[^1]: Full reference with title...</pre>
+        <div class="hero-aside">
+          <div class="mini-card">
+            <h3>What changed</h3>
+            <p>
+              The hosted playground is gone. PaperFlow is now focused on the open-source layer that upgrades parser output
+              into knowledge-ready Markdown.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h3>Core idea</h3>
+            <pre><code>raw parser output
+  -> normalize
+  -> enrich
+  -> structured markdown</code></pre>
+          </div>
+          <div class="mini-card">
+            <h3>Use it with</h3>
+            <p>Marker API, Marker local, MinerU, Docling, LlamaParse, PyMuPDF4LLM, or your own extractor.</p>
+          </div>
         </div>
       </div>
-      <p style="color: #666; font-size: 0.8rem; margin: 1rem 0 0 0; text-align: center; line-height: 1.5;">
-        Standard Markdown. Works everywhere &mdash; Obsidian, Notion, Logseq, LangChain, LlamaIndex, or your own pipeline.
-      </p>
-      <div style="
-        margin-top: 1rem;
-        border: 1px solid #1a1a2e;
-        border-radius: 6px;
-        background: #0f0f18;
-        padding: 0.85rem 1rem;
-      ">
-        <p style="color: #9aa5ff; font-size: 0.8rem; margin: 0; line-height: 1.55; text-align: center;">
-          Step 3 is what makes us different. Parsing is commoditized.
-          Post-processing is the product.
-        </p>
-      </div>
-    </div>
+    </section>
 
-    <!-- 6. MCP install block -->
-    <div id="mcp-install" style="
-      margin-top: 3rem;
-      padding: 2rem;
-      border: 1px solid #1a1a2e;
-      border-radius: 8px;
-      background: #0a0a14;
-    ">
-      <div style="
-        display: flex;
-        align-items: baseline;
-        gap: 0.5rem;
-        margin-bottom: 0.3rem;
-      ">
-        <h3 style="color: #7c8aff; font-size: 1rem; margin: 0; font-weight: 600;">
-          Install PaperFlow MCP (Windows, macOS, Linux)
-        </h3>
-        <span style="
-          background: #1a1a2e;
-          color: #7c8aff;
-          font-size: 0.6rem;
-          padding: 0.15rem 0.4rem;
-          border-radius: 3px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        ">2-minute setup</span>
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Before / After</h2>
+          <p>The parser is not the moat. Post-processing is where raw text becomes something you can actually use.</p>
+        </div>
+        <div class="pill">Best sales tool kept intact</div>
       </div>
 
-      <p style="color: #888; font-size: 0.85rem; margin: 0 0 0.3rem 0;">
-        Deploy once, then use PaperFlow directly inside Claude Desktop.
-      </p>
-      <p style="color: #7a7a94; font-size: 0.78rem; margin: 0 0 0.6rem 0;">
-        New here? Try the web playground above first (no install), then decide if MCP fits your workflow.
-      </p>
-      <p style="color: #555; font-size: 0.78rem; margin: 0 0 1.2rem 0;">
-        ~80% fewer tokens &middot; LaTeX preserved &middot; tables intact &middot; citations linked
-      </p>
+      <div class="comparison">
+        <article class="comparison-card">
+          <div class="comparison-label">Raw parser output</div>
+          <pre><code>[1] dead text -- can't click
+\[ E = mc^2 \] wrong delimiters
+[Fig. 3] plain string
+No metadata
 
-      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
-        Step 1: Install
-      </p>
-      <pre style="
-        background: #0f0f0f;
-        border: 1px solid #1a1a1a;
-        border-radius: 6px;
-        padding: 0.8rem 1rem;
-        overflow-x: auto;
-        font-size: 0.78rem;
-        color: #a0a0a0;
-        line-height: 1.6;
-        margin: 0 0 1rem 0;
-      "><code>npm install -g paperflow-mcp</code></pre>
+References
+[1] Vaswani et al. Attention Is All You Need.</code></pre>
+        </article>
 
-      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
-        Step 2: Add to Claude Desktop config (macOS / Linux)
+        <article class="comparison-card good">
+          <div class="comparison-label">After PaperFlow</div>
+          <pre><code>[^1] hover to preview reference
+$$ E = mc^2 $$ renders everywhere
+[[#^fig-3|Fig. 3]] click to jump
+---
+title: "Attention Is All You Need"
+authors:
+  - "Vaswani"
+  - "Shazeer"
+---</code></pre>
+        </article>
+      </div>
+
+      <p class="comparison-note">
+        Works with any Markdown editor: Obsidian, Notion, Logseq, VS Code, or your RAG pipeline.
       </p>
-      <pre style="
-        background: #0f0f0f;
-        border: 1px solid #1a1a1a;
-        border-radius: 6px;
-        padding: 1rem;
-        overflow-x: auto;
-        font-size: 0.78rem;
-        color: #a0a0a0;
-        line-height: 1.6;
-        margin: 0 0 1rem 0;
-      "><code>{
+    </section>
+
+    <section class="section" id="quick-start">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Quick Start</h2>
+          <p>Pick the integration surface that matches your workflow.</p>
+        </div>
+        <div class="pill">Three paths</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab-list" role="tablist" aria-label="Quick start tabs">
+          <button class="tab-button" role="tab" aria-selected="true" aria-controls="tab-python" id="btn-python">Python package</button>
+          <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-mcp" id="btn-mcp">MCP Server</button>
+          <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-pipeline" id="btn-pipeline">Full pipeline</button>
+        </div>
+
+        <section class="tab-panel active" id="tab-python" role="tabpanel" aria-labelledby="btn-python">
+          <div class="panel-grid">
+            <div class="code-block">
+              <div class="code-label">Install</div>
+              <pre><code>pip install paperflow-postprocess</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label">Python</div>
+              <pre><code>from paperflow_postprocess import postprocess
+
+raw_md = open("parser_output.md").read()
+result = postprocess(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="tab-mcp" role="tabpanel" aria-labelledby="btn-mcp">
+          <div class="panel-grid">
+            <div class="code-block">
+              <div class="code-label">Install</div>
+              <pre><code>npm install -g paperflow-mcp</code></pre>
+            </div>
+            <div class="panel-copy">
+              <p>Use PaperFlow in Claude Desktop with the MCP server package.</p>
+              <ul>
+                <li>macOS / Linux config:</li>
+              </ul>
+            </div>
+          </div>
+          <div class="panel-grid">
+            <div class="code-block">
+              <div class="code-label">macOS / Linux</div>
+              <pre><code>{
   "mcpServers": {
     "paperflow": {
       "command": "npx",
@@ -355,21 +711,10 @@ Table 3: Results...
     }
   }
 }</code></pre>
-
-      <p style="color: #7c8aff; font-size: 0.74rem; margin: 0 0 0.45rem 0; text-transform: uppercase; letter-spacing: 0.06em;">
-        Step 3: Add to Claude Desktop config (Windows)
-      </p>
-      <pre style="
-        background: #0f0f0f;
-        border: 1px solid #1a1a1a;
-        border-radius: 6px;
-        padding: 1rem;
-        overflow-x: auto;
-        font-size: 0.78rem;
-        color: #a0a0a0;
-        line-height: 1.6;
-        margin: 0;
-      "><code>{
+            </div>
+            <div class="code-block">
+              <div class="code-label">Windows</div>
+              <pre><code>{
   "mcpServers": {
     "paperflow": {
       "command": "cmd",
@@ -377,185 +722,203 @@ Table 3: Results...
     }
   }
 }</code></pre>
+            </div>
+          </div>
+        </section>
 
-      <p style="color: #444; font-size: 0.75rem; margin-top: 0.75rem; margin-bottom: 0;">
-        Step 4: Restart Claude Desktop, then ask it to analyze any PDF with PaperFlow MCP.
-      </p>
-    </div>
+        <section class="tab-panel" id="tab-pipeline" role="tabpanel" aria-labelledby="btn-pipeline">
+          <div class="panel-grid">
+            <div class="code-block">
+              <div class="code-label">Self-hosted</div>
+              <pre><code>git clone https://github.com/TylerMorrison21/paperflow
+cd paperflow
+cp .env.example .env
+# Add your Datalab API key (or use MinerU/Docling locally)
+uvicorn api.main:app --port 8000</code></pre>
+            </div>
+            <div class="panel-copy">
+              <p>
+                Run the full stack yourself if you want extraction plus PaperFlow post-processing in one deployment.
+              </p>
+              <ul>
+                <li>No hosted playground required.</li>
+                <li>Swap in local parsers when you want lower cost or full control.</li>
+                <li>Deploy on your own infra, not Railway.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
 
-    <!-- 7. Enterprise CTA -->
-    <div style="
-      text-align: center;
-      margin-top: 2.5rem;
-      padding: 1.5rem 1rem;
-      border-top: 1px solid #141414;
-    ">
-      <p style="color: #444; font-size: 0.78rem; margin: 0 0 0.4rem 0;">
-        10,000+ pages processed &middot; Researchers &amp; developers in 40+ countries
-      </p>
-      <p style="color: #666; font-size: 0.85rem; margin: 0;">
-        &rarr; EdTech: Feed structured papers into your learning platform<br>
-        &rarr; RAG/AI: 80% fewer tokens with zero post-processing needed<br>
-        &rarr; Research teams: Batch convert your paper library into a searchable knowledge base
-      </p>
-      <p style="margin: 0.9rem 0 0 0;">
-        <a href="mailto:support@paperflowing.com?subject=Use%20Case%20Inquiry" style="
-          display: inline-block;
-          padding: 0.55rem 0.95rem;
-          border-radius: 6px;
-          border: 1px solid #7c8aff;
-          color: #7c8aff;
-          text-decoration: none;
-          font-size: 0.82rem;
-          font-weight: 600;
-        ">Tell us your use case</a>
-      </p>
-      <p style="color: #666; font-size: 0.78rem; margin: 0.55rem 0 0 0;">
-        Email: <a href="mailto:support@paperflowing.com?subject=Need%20API%20access" style="color: #9aa5ff; text-decoration: none;">support@paperflowing.com</a>
-      </p>
-      <p style="color: #3f3f3f; font-size: 0.72rem; margin-top: 1rem; margin-bottom: 0;">
-        Paperflowing &copy; 2026. All rights reserved.
-      </p>
-    </div>
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Supported PDF Parsers</h2>
+          <p>PaperFlow works with any parser. Choose one.</p>
+        </div>
+        <div class="pill">Parser-agnostic</div>
+      </div>
 
-    <div id="success" hidden>
-      <div class="check">✓</div>
-      <p>Processing started.<br>Check your inbox in 1–2 minutes.</p>
-    </div>
-  </div>
+      <div class="parser-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Parser</th>
+              <th>Type</th>
+              <th>Cost</th>
+              <th>Best for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Marker API (Datalab)</td>
+              <td>Cloud API</td>
+              <td>$25/mo free credits</td>
+              <td>Easiest setup</td>
+            </tr>
+            <tr>
+              <td>Marker (self-hosted)</td>
+              <td>Local, GPU</td>
+              <td>Free (&lt;$5M rev)</td>
+              <td>Full control</td>
+            </tr>
+            <tr>
+              <td>MinerU</td>
+              <td>Local, GPU</td>
+              <td>Free</td>
+              <td>Chinese docs, science</td>
+            </tr>
+            <tr>
+              <td>Docling</td>
+              <td>Local, CPU</td>
+              <td>Free</td>
+              <td>Lightweight</td>
+            </tr>
+            <tr>
+              <td>LlamaParse</td>
+              <td>Cloud API</td>
+              <td>Free tier available</td>
+              <td>RAG pipelines</td>
+            </tr>
+            <tr>
+              <td>PyMuPDF4LLM</td>
+              <td>Local, CPU</td>
+              <td>Free</td>
+              <td>Simple PDFs</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-  <script type="module">
-    let pdfjsLib = null;
-    async function getPdfJs() {
-      if (!pdfjsLib) {
-        pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
-      }
-      return pdfjsLib;
+      <p class="tagline">Parsing is commoditized. Post-processing is the product.</p>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>The Pipeline</h2>
+          <p>Four steps from parser output to workflow-ready Markdown.</p>
+        </div>
+        <div class="pill">Extract -> Normalize -> Enrich -> Output</div>
+      </div>
+
+      <div class="pipeline-grid">
+        <article class="pipeline-step">
+          <div class="step-index">Step 1</div>
+          <h3>Extract</h3>
+          <p>Your chosen parser outputs raw Markdown.</p>
+        </article>
+        <article class="pipeline-step">
+          <div class="step-index">Step 2</div>
+          <h3>Normalize</h3>
+          <p>LaTeX delimiters unified, broken formatting cleaned, repeated noise stripped.</p>
+        </article>
+        <article class="pipeline-step">
+          <div class="step-index">Step 3</div>
+          <h3>Enrich</h3>
+          <p>Citations become footnotes, figures become links, YAML metadata gets injected.</p>
+        </article>
+        <article class="pipeline-step">
+          <div class="step-index">Step 4</div>
+          <h3>Output</h3>
+          <p>Structured Markdown ready for editors, note systems, search indexes, and agents.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Stats &amp; Social Proof</h2>
+          <p>PaperFlow already has distribution. Now the product is moving into the open.</p>
+        </div>
+        <div class="pill">Momentum exists</div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-value">77K</div>
+          <h3>Reddit views</h3>
+          <p>Organic attention from researchers and builders.</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-value">810</div>
+          <h3>Upvotes</h3>
+          <p>Strong validation for the problem and the demo.</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-value">10,000+</div>
+          <h3>Pages processed</h3>
+          <p>Enough real-world PDF messiness to shape the pipeline.</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-value">40+</div>
+          <h3>Countries</h3>
+          <p>Used by developers, researchers, and document-heavy workflows globally.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="section">
+      <div class="footer-grid">
+        <div>
+          <span class="eyebrow">PaperFlow</span>
+          <h2>MIT License. Built by Philip Liu.</h2>
+          <p>
+            Open-source infrastructure for turning parser output into structured knowledge. Host it yourself, modify it,
+            and wire it into any PDF pipeline you already trust.
+          </p>
+        </div>
+        <div>
+          <div class="footer-links">
+            <a class="footer-link" href="https://github.com/TylerMorrison21/paperflow" target="_blank" rel="noreferrer">GitHub</a>
+            <a class="footer-link" href="https://pypi.org/project/paperflow-postprocess/" target="_blank" rel="noreferrer">PyPI</a>
+            <a class="footer-link" href="https://www.npmjs.com/package/paperflow-mcp" target="_blank" rel="noreferrer">npm</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
+    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+
+    function selectTab(button) {
+      const targetId = button.getAttribute("aria-controls");
+
+      tabButtons.forEach((item) => {
+        item.setAttribute("aria-selected", item === button ? "true" : "false");
+      });
+
+      tabPanels.forEach((panel) => {
+        panel.classList.toggle("active", panel.id === targetId);
+      });
     }
 
-    const MAX_PAGES = 15;
-    const dropzone    = document.getElementById('dropzone');
-    const fileInput   = document.getElementById('file-input');
-    const form        = document.getElementById('upload-form');
-    const submitBtn   = document.getElementById('submit-btn');
-    const errorMsg    = document.getElementById('error-msg');
-    const progressTxt = document.getElementById('progress-text');
-    const formWrapper = document.getElementById('form-wrapper');
-    const success     = document.getElementById('success');
-
-    let selectedFile = null;
-
-    // Click dropzone → open file picker
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) setFile(fileInput.files[0]);
-    });
-
-    // Drag & drop
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
-
-    ['dragleave', 'dragend'].forEach(evt =>
-      dropzone.addEventListener(evt, () => dropzone.classList.remove('dragover'))
-    );
-
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file && file.name.toLowerCase().endsWith('.pdf')) {
-        setFile(file);
-      } else {
-        showError('Only PDF files are accepted.');
-      }
-    });
-
-    async function setFile(file) {
-      const maxSize = 15 * 1024 * 1024;
-      if (file.size > maxSize) {
-        showError('File too large. Maximum size is 15MB.');
-        return;
-      }
-
-      // Count pages client-side
-      try {
-        const pdfjs = await getPdfJs();
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-        if (pdf.numPages > MAX_PAGES) {
-          showError(`Free playground limited to 15 pages. Need more? Upgrade to Pro: support@paperflowing.com`, true);
-          return;
-        }
-      } catch (err) {
-        // If pdf.js can't read it, let the server handle validation
-      }
-
-      selectedFile = file;
-      dropzone.classList.add('has-file');
-      document.getElementById('dropzone-label').textContent = file.name;
-      clearError();
-    }
-
-    function showError(msg, soft = false) {
-      errorMsg.textContent = msg;
-      errorMsg.style.display = 'block';
-      errorMsg.classList.toggle('soft', soft);
-    }
-
-    function clearError() {
-      errorMsg.style.display = 'none';
-      errorMsg.textContent = '';
-      errorMsg.classList.remove('soft');
-    }
-
-    // Submit
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearError();
-
-      if (!selectedFile) {
-        showError('Please select a PDF file.');
-        return;
-      }
-
-      const email = document.getElementById('email-input').value.trim();
-      if (!email) {
-        showError('Please enter your email address.');
-        return;
-      }
-
-      submitBtn.disabled = true;
-      progressTxt.style.display = 'block';
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('email', email);
-
-      try {
-        const res = await fetch('https://paperflow-production-daf5.up.railway.app/api/submit', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (res.ok) {
-          formWrapper.hidden = true;
-          success.hidden = false;
-        } else {
-          const data = await res.json().catch(() => ({}));
-          const msg = data.detail || `Something went wrong. Please try again.`;
-          showError(msg, res.status === 429);
-          submitBtn.disabled = false;
-          progressTxt.style.display = 'none';
-        }
-      } catch (err) {
-        showError('Network error. Please check your connection and try again.');
-        submitBtn.disabled = false;
-        progressTxt.style.display = 'none';
-      }
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => selectTab(button));
     });
   </script>
 </body>

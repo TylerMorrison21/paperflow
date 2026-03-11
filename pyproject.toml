@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paperflow-postprocess"
+version = "0.1.1"
+description = "PaperFlow markdown post-processing for citations, figures, tables, and frontmatter."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "PaperFlow" }
+]
+keywords = ["markdown", "obsidian", "citations", "latex", "paperflow"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Text Processing :: Markup",
+]
+
+[project.urls]
+Homepage = "https://paperflowing.com"
+Repository = "https://github.com/TylerMorrison21/paperflow"
+Issues = "https://github.com/TylerMorrison21/paperflow/issues"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["paperflow_postprocess*"]
