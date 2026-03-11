@@ -138,12 +138,12 @@ async def send_page_limit_email(to_email: str, title: str, page_count: int):
         <!-- Body -->
         <tr><td style="padding:36px 40px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#333;line-height:1.7;">
           <p style="margin:0 0 16px;">Hi,</p>
-          <p style="margin:0 0 16px;">Your paper &ldquo;{title}&rdquo; has {page_count} pages, which exceeds our free playground limit of {MAX_PAGES} pages.</p>
-          <p style="margin:0 0 16px;">The playground is designed for quick quality testing &mdash; you&rsquo;ve already seen what our parser can do.</p>
+          <p style="margin:0 0 16px;">Your paper &ldquo;{title}&rdquo; has {page_count} pages, which exceeds this PaperFlow instance&rsquo;s configured limit of {MAX_PAGES} pages.</p>
+          <p style="margin:0 0 16px;">PaperFlow is designed to work either self-hosted or through a managed deployment, depending on your document volume and compliance needs.</p>
           <p style="margin:0 0 8px;">For full documents and batch processing:</p>
-          <p style="margin:0 0 4px;">&bull; API access &mdash; from $0.05/page, handles LaTeX, multi-column, footnotes</p>
+          <p style="margin:0 0 4px;">&bull; Commercial API &mdash; from $0.05/page, handles LaTeX, multi-column, footnotes</p>
           <p style="margin:0 0 4px;">&bull; MCP Server &mdash; use PaperFlow directly inside Claude Desktop</p>
-          <p style="margin:0 0 16px;">&bull; Self-hosted deployment &mdash; available for enterprise</p>
+          <p style="margin:0 0 16px;">&bull; Private deployment &mdash; self-hosted for enterprise environments</p>
           <p style="margin:0 0 28px;">Contact us: <a href="mailto:{CONTACT_EMAIL}" style="color:#333;">{CONTACT_EMAIL}</a></p>
           <p style="margin:0;">&mdash; PaperFlow</p>
         </td></tr>

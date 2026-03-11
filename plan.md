@@ -13,8 +13,8 @@ Maintenance mode.
 
 ## Final State
 
-- Hosted playground shut down
-- Static project page kept online
+- Open-source project page and local Web UI are the primary user experience
+- Hosted playground retired
 - `paperflow-postprocess` published on PyPI
 - `paperflow-mcp` published on npm for self-hosted backend usage
 - Backend kept only as an optional self-hosted path
