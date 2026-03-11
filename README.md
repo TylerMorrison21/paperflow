@@ -4,10 +4,10 @@
 
 # PaperFlow
 
-**Turn academic PDFs into structured, knowledge-ready Markdown — 
+**Turn academic PDFs into structured, knowledge-ready Markdown - 
 with working footnotes, LaTeX equations, figure links, and metadata.**
 
-PaperFlow is an open-source post-processing engine for PDF→Markdown 
+PaperFlow is an open-source post-processing engine for PDF->Markdown 
 pipelines. It takes raw Markdown from any PDF parser (Marker, MinerU, 
 PyMuPDF, Docling, LlamaParse) and upgrades it into structured output 
 that works in Obsidian, Notion, Logseq, or any RAG pipeline.
@@ -16,7 +16,7 @@ that works in Obsidian, Notion, Logseq, or any RAG pipeline.
 
 | Problem in raw parser output | After PaperFlow |
 |-----|-----|
-| `[1]` dead text — can't click | `[^1]` standard footnote — hover to preview |
+| `[1]` dead text - can't click | `[^1]` standard footnote - hover to preview |
 | `\[ E=mc^2 \]` wrong delimiters | `$$ E=mc^2 $$` renders everywhere |
 | `[Fig. 3]` plain string | `[[#^fig-3\|Fig. 3]]` clickable internal link |
 | No metadata | YAML frontmatter: title, authors, date, tags |
@@ -28,8 +28,8 @@ that works in Obsidian, Notion, Logseq, or any RAG pipeline.
 |---|---|---|
 | ![Source](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/original_pdf.png) | ![Generic](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pymupdf_converted.png) | ![PaperFlow](https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow_converted.png) |
 
-> **77K views on Reddit** · 810 upvotes · 98% upvote ratio · 
-> 10,000+ pages processed · Used by researchers in 40+ countries
+> **77K views on Reddit** - 810 upvotes - 98% upvote ratio - 
+> 10,000+ pages processed - Used by researchers in 40+ countries
 
 ---
 
@@ -264,7 +264,7 @@ For local parser debugging, check these first:
 
 ## Enterprise & Commercial Use
 
-PaperFlow is MIT licensed — free for personal and commercial use.
+PaperFlow is MIT licensed - free for personal and commercial use.
 
 For organizations that need:
 - **Private deployment** on your infrastructure (Docker, air-gapped)

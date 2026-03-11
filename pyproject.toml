@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-  { name = "PaperFlow" }
+  { name = "Philip Liu" }
 ]
 keywords = ["markdown", "obsidian", "citations", "latex", "paperflow"]
 classifiers = [
