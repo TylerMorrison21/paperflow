@@ -10,11 +10,11 @@ from datetime import datetime
 from pathlib import Path
 from pypdf import PdfReader
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
-from api.models import SubmitResponse
+from api.models import BatchSubmitResponse, SubmitResponse
 from api.config import DATA_DIR, MAX_FILE_SIZE_MB, MAX_PAGES, MCP_EMAIL_PREFIX
 from api.services.parsers import list_parsers, parse_pdf_with_parser
 from api.services.postprocess import postprocess
-from api.services.packager import build_zip
+from api.services.packager import build_zip, sanitize_filename
 from api.services.emailer import send_paper_email, send_page_limit_email, send_failure_email
 from api.services.ratelimit import check_daily_limit, check_monthly_pages, check_email_limit, record_submission
 
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 # In-memory hash 鈫?job_dir mapping for dedup
 _hash_cache: dict[str, str] = {}
+BATCH_DIR_NAME = "_batches"
 
 _TITLE_BLACKLIST = {
     "abstract",
@@ -86,6 +87,36 @@ def _find_cached_zip(cache_key: str) -> Path | None:
 
 def _write_parser_name(job_dir: Path, parser_name: str) -> None:
     (job_dir / "parser.txt").write_text(parser_name, encoding="utf-8")
+
+
+def _batch_root() -> Path:
+    root = Path(DATA_DIR) / BATCH_DIR_NAME
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _batch_dir(batch_id: str) -> Path:
+    return _batch_root() / batch_id
+
+
+def _batch_status_path(batch_id: str) -> Path:
+    return _batch_dir(batch_id) / "status.json"
+
+
+def _write_batch_status(batch_id: str, payload: dict) -> None:
+    batch_dir = _batch_dir(batch_id)
+    batch_dir.mkdir(parents=True, exist_ok=True)
+    _batch_status_path(batch_id).write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _read_batch_status(batch_id: str) -> dict | None:
+    status_path = _batch_status_path(batch_id)
+    if not status_path.exists():
+        return None
+    return json.loads(status_path.read_text(encoding="utf-8"))
 
 
 def _extract_cached_title(md_content: str) -> str | None:
@@ -380,6 +411,102 @@ def get_parser_options():
     return {"parsers": list_parsers()}
 
 
+def _validate_parser(parser: str) -> dict:
+    parser = (parser or "pymupdf").strip().lower()
+    parser_options = {row["id"]: row for row in list_parsers()}
+    selected_parser = parser_options.get(parser)
+    if not selected_parser:
+        raise HTTPException(status_code=400, detail=f"Unknown parser '{parser}'.")
+    if not selected_parser["configured"]:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Parser '{parser}' is not configured in this instance. "
+                f"{selected_parser['setup']}."
+            ),
+        )
+    return selected_parser
+
+
+async def _read_and_validate_pdf(file: UploadFile) -> tuple[bytes, int]:
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    pdf_bytes = await file.read()
+    max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+    if len(pdf_bytes) > max_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.",
+        )
+
+    try:
+        page_count = len(PdfReader(io.BytesIO(pdf_bytes)).pages)
+    except Exception:
+        page_count = 0
+
+    if page_count > MAX_PAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"This PaperFlow instance is configured with a {MAX_PAGES}-page limit. "
+                f"Increase MAX_PAGES in your .env if you want to process larger PDFs."
+            ),
+        )
+
+    return pdf_bytes, page_count
+
+
+async def _read_pdf_bytes(file: UploadFile) -> bytes:
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    pdf_bytes = await file.read()
+    max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+    if len(pdf_bytes) > max_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.",
+        )
+
+    return pdf_bytes
+
+
+def _build_batch_package(batch_id: str, completed_items: list[dict]) -> Path:
+    batch_dir = _batch_dir(batch_id)
+    package_path = batch_dir / f"paperflow-batch-{batch_id}.zip"
+
+    with zipfile.ZipFile(package_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        summary = []
+
+        for item in completed_items:
+            job_dir = Path(item["job_dir"])
+            folder_name = sanitize_filename(Path(item["filename"]).stem) or item["job_id"]
+            paper_md = job_dir / "paper.md"
+            images_dir = job_dir / "images"
+
+            if paper_md.exists():
+                zf.write(paper_md, f"{folder_name}/paper.md")
+
+            if images_dir.exists():
+                for image_file in images_dir.glob("*"):
+                    if image_file.is_file():
+                        zf.write(image_file, f"{folder_name}/images/{image_file.name}")
+
+            summary.append(
+                {
+                    "filename": item["filename"],
+                    "job_id": item["job_id"],
+                    "status": item["status"],
+                    "parser": item["parser"],
+                }
+            )
+
+        zf.writestr("summary.json", json.dumps(summary, ensure_ascii=True, indent=2))
+
+    return package_path
+
+
 async def process_job(
     job_id: str,
     pdf_bytes: bytes,
@@ -506,6 +633,91 @@ async def process_job(
         return
 
 
+async def process_batch(
+    batch_id: str,
+    files_payload: list[dict],
+    parser_name: str,
+) -> None:
+    batch_dir = _batch_dir(batch_id)
+    jobs_dir = batch_dir / "jobs"
+    jobs_dir.mkdir(parents=True, exist_ok=True)
+
+    status_payload = {
+        "batch_id": batch_id,
+        "status": "processing",
+        "parser": parser_name,
+        "total": len(files_payload),
+        "completed": 0,
+        "failed": 0,
+        "items": [
+            {
+                "filename": item["filename"],
+                "job_id": item["job_id"],
+                "status": "queued",
+                "parser": parser_name,
+            }
+            for item in files_payload
+        ],
+    }
+    _write_batch_status(batch_id, status_payload)
+
+    completed_items: list[dict] = []
+
+    for index, item in enumerate(files_payload):
+        job_dir = Path(DATA_DIR) / item["job_id"]
+        job_dir.mkdir(parents=True, exist_ok=True)
+
+        status_payload["items"][index]["status"] = "processing"
+        _write_batch_status(batch_id, status_payload)
+
+        await process_job(
+            item["job_id"],
+            item["pdf_bytes"],
+            "mcp@paperflow.local",
+            item["filename"],
+            item["file_hash"],
+            parser_name,
+        )
+
+        paper_md = job_dir / "paper.md"
+        error_path = job_dir / "error.json"
+
+        if paper_md.exists():
+            status_payload["completed"] += 1
+            status_payload["items"][index]["status"] = "done"
+            status_payload["items"][index]["job_dir"] = str(job_dir)
+            completed_items.append(
+                {
+                    "filename": item["filename"],
+                    "job_id": item["job_id"],
+                    "job_dir": str(job_dir),
+                    "status": "done",
+                    "parser": parser_name,
+                }
+            )
+        else:
+            status_payload["failed"] += 1
+            status_payload["items"][index]["status"] = "failed"
+            if error_path.exists():
+                try:
+                    status_payload["items"][index]["error"] = json.loads(
+                        error_path.read_text(encoding="utf-8")
+                    ).get("error", "PaperFlow failed to convert this PDF.")
+                except Exception:
+                    status_payload["items"][index]["error"] = "PaperFlow failed to convert this PDF."
+
+        _write_batch_status(batch_id, status_payload)
+
+    if completed_items:
+        package_path = _build_batch_package(batch_id, completed_items)
+        status_payload["package"] = package_path.name
+        status_payload["status"] = "done"
+    else:
+        status_payload["status"] = "failed"
+
+    _write_batch_status(batch_id, status_payload)
+
+
 @router.post("/api/submit", response_model=SubmitResponse)
 async def submit_pdf(
     background_tasks: BackgroundTasks,
@@ -519,22 +731,7 @@ async def submit_pdf(
     """
     parser = (parser or "pymupdf").strip().lower()
 
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
-
-    parser_options = {row["id"]: row for row in list_parsers()}
-    selected_parser = parser_options.get(parser)
-    if not selected_parser:
-        raise HTTPException(status_code=400, detail=f"Unknown parser '{parser}'.")
-    if not selected_parser["configured"]:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Parser '{parser}' is not configured in this instance. "
-                f"{selected_parser['setup']}."
-            ),
-        )
+    _validate_parser(parser)
 
     # Generate job ID
     job_id = str(uuid.uuid4())
@@ -543,30 +740,11 @@ async def submit_pdf(
     job_dir = Path(DATA_DIR) / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    # Read PDF bytes and check file size
-    pdf_bytes = await file.read()
-    max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
-    if len(pdf_bytes) > max_bytes:
-        raise HTTPException(status_code=400, detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.")
+    pdf_bytes, page_count = await _read_and_validate_pdf(file)
 
-    # Count pages before calling Marker API
-    try:
-        reader = PdfReader(io.BytesIO(pdf_bytes))
-        page_count = len(reader.pages)
-    except Exception:
-        page_count = 0  # let Marker handle corrupt PDFs
-
-    if page_count > MAX_PAGES:
+    if page_count > MAX_PAGES and not email.startswith(MCP_EMAIL_PREFIX):
         logger.info(f"Job {job_id}: {page_count} pages exceeds limit of {MAX_PAGES}, sending limit email")
-        if not email.startswith(MCP_EMAIL_PREFIX):
-            background_tasks.add_task(send_page_limit_email, email, file.filename, page_count)
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"This PaperFlow instance is configured with a {MAX_PAGES}-page limit. "
-                f"Increase MAX_PAGES in your .env if you want to process larger PDFs."
-            )
-        )
+        background_tasks.add_task(send_page_limit_email, email, file.filename, page_count)
 
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
     cache_key = _cache_key(file_hash, parser)
@@ -624,5 +802,65 @@ async def submit_pdf(
     return SubmitResponse(
         job_id=job_id,
         message=(f"Processing. Poll /api/jobs/{job_id}/status, then fetch /api/jobs/{job_id}/result or /api/jobs/{job_id}/package.")
+    )
+
+
+@router.post("/api/submit-batch", response_model=BatchSubmitResponse)
+async def submit_batch(
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    parser: str = Form("pymupdf"),
+):
+    parser = (parser or "pymupdf").strip().lower()
+    _validate_parser(parser)
+
+    if len(files) < 2:
+        raise HTTPException(status_code=400, detail="Batch mode requires at least 2 PDFs.")
+    if len(files) > 20:
+        raise HTTPException(status_code=400, detail="Batch mode is limited to 20 PDFs per run.")
+
+    batch_id = str(uuid.uuid4())
+    payload_items: list[dict] = []
+
+    for file in files:
+        pdf_bytes = await _read_pdf_bytes(file)
+        payload_items.append(
+            {
+                "job_id": str(uuid.uuid4()),
+                "filename": file.filename,
+                "pdf_bytes": pdf_bytes,
+                "file_hash": hashlib.sha256(pdf_bytes).hexdigest(),
+            }
+        )
+
+    _write_batch_status(
+        batch_id,
+        {
+            "batch_id": batch_id,
+            "status": "queued",
+            "parser": parser,
+            "total": len(payload_items),
+            "completed": 0,
+            "failed": 0,
+            "items": [
+                {
+                    "filename": item["filename"],
+                    "job_id": item["job_id"],
+                    "status": "queued",
+                    "parser": parser,
+                }
+                for item in payload_items
+            ],
+        },
+    )
+
+    background_tasks.add_task(process_batch, batch_id, payload_items, parser)
+
+    return BatchSubmitResponse(
+        batch_id=batch_id,
+        message=(
+            f"Batch queued. Poll /api/batches/{batch_id}/status, then fetch "
+            f"/api/batches/{batch_id}/package when it is done."
+        ),
     )
 

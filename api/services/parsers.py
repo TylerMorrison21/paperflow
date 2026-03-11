@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.config import DATALAB_API_KEY
-from api.services import marker, pymupdf_parser
+from api.config import DATALAB_API_KEY, MARKER_SINGLE_CMD, MINERU_CMD
+from api.services import marker, marker_local_parser, mineru_parser, pymupdf_parser
 
 
 def list_parsers() -> list[dict]:
@@ -29,22 +29,30 @@ def list_parsers() -> list[dict]:
         {
             "id": "marker_local",
             "label": "Marker Self-Hosted",
-            "configured": False,
+            "configured": marker_local_parser.parser_available(),
             "recommended": False,
             "speed": "Depends",
             "quality": "Best",
-            "setup": "Not wired yet",
-            "description": "Bring your own local Marker deployment and adapter.",
+            "setup": (
+                f"Ready: {MARKER_SINGLE_CMD}"
+                if marker_local_parser.parser_available()
+                else "Install marker and expose marker_single, or set MARKER_SINGLE_CMD"
+            ),
+            "description": "Runs Marker locally through the official marker_single CLI.",
         },
         {
             "id": "mineru",
             "label": "MinerU",
-            "configured": False,
+            "configured": mineru_parser.parser_available(),
             "recommended": False,
             "speed": "Depends",
             "quality": "Mixed",
-            "setup": "Not wired yet",
-            "description": "Possible future adapter for users who already run MinerU.",
+            "setup": (
+                f"Ready: {MINERU_CMD}"
+                if mineru_parser.parser_available()
+                else "Install MinerU and expose mineru, or set MINERU_CMD"
+            ),
+            "description": "Runs MinerU locally through the official mineru CLI.",
         },
     ]
 
@@ -67,11 +75,11 @@ async def parse_pdf_with_parser(pdf_bytes: bytes, parser_id: str) -> dict:
     if parser_id == "marker_api":
         return await marker.parse_pdf(pdf_bytes)
 
-    if parser_id in {"marker_local", "mineru"}:
-        raise RuntimeError(
-            f"{parser_id} is not wired into this local instance yet. "
-            "Use PyMuPDF for the easiest local path or Marker API for the best quality."
-        )
+    if parser_id == "marker_local":
+        return await marker_local_parser.parse_pdf(pdf_bytes)
+
+    if parser_id == "mineru":
+        return await mineru_parser.parse_pdf(pdf_bytes)
 
     raise RuntimeError(
         f"Unknown parser '{parser_id}'. "

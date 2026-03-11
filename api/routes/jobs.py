@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from api.config import DATA_DIR
 
 router = APIRouter()
+BATCH_DIR = Path(DATA_DIR) / "_batches"
 
 
 def _safe_job_dir(job_id: str) -> Path:
@@ -106,4 +107,60 @@ def job_package(job_id: str):
         path=zip_path,
         media_type="application/zip",
         filename=zip_path.name,
+    )
+
+
+@router.get("/api/batches/{batch_id}/status")
+def batch_status(batch_id: str):
+    batch_dir = BATCH_DIR / batch_id
+    status_path = batch_dir / "status.json"
+
+    if not status_path.exists():
+        return JSONResponse(status_code=404, content={"status": "not_found"})
+
+    try:
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+    except Exception:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "failed", "error": "Batch status could not be read."},
+        )
+
+    return payload
+
+
+@router.get("/api/batches/{batch_id}/package")
+def batch_package(batch_id: str):
+    batch_dir = BATCH_DIR / batch_id
+    status_path = batch_dir / "status.json"
+
+    if not status_path.exists():
+        return JSONResponse(status_code=404, content={"status": "not_found"})
+
+    try:
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+    except Exception:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "failed", "error": "Batch status could not be read."},
+        )
+
+    if payload.get("status") == "failed" and not payload.get("package"):
+        return JSONResponse(
+            status_code=422,
+            content={"status": "failed", "error": "Batch processing failed."},
+        )
+
+    package_name = payload.get("package")
+    if not package_name:
+        return JSONResponse(status_code=404, content={"status": "not_ready"})
+
+    package_path = batch_dir / package_name
+    if not package_path.exists():
+        return JSONResponse(status_code=404, content={"status": "not_ready"})
+
+    return FileResponse(
+        path=package_path,
+        media_type="application/zip",
+        filename=package_path.name,
     )

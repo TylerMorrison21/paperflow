@@ -196,6 +196,35 @@
       gap: 12px;
     }
 
+    .parser-badges,
+    .file-list,
+    .batch-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .parser-chip,
+    .file-pill,
+    .batch-status {
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      padding: 6px 10px;
+    }
+
+    .parser-chip {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--accent-strong);
+    }
+
+    .parser-chip.muted {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+    }
+
     .parser-option {
       background: rgba(9, 13, 11, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -241,6 +270,11 @@
       font-size: 0.92rem;
     }
 
+    .parser-setup {
+      color: var(--text);
+      margin-top: 10px;
+    }
+
     .dropzone {
       align-items: center;
       background: rgba(9, 13, 11, 0.92);
@@ -282,6 +316,29 @@
       gap: 12px;
     }
 
+    .file-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .progress-shell {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      height: 10px;
+      margin: 14px 0 10px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+      border-radius: inherit;
+      height: 100%;
+      transition: width 0.2s ease;
+      width: 0%;
+    }
+
     .status-log {
       background: rgba(8, 10, 9, 0.96);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -301,6 +358,52 @@
       flex-wrap: wrap;
       gap: 12px;
       margin-top: 14px;
+    }
+
+    .batch-list {
+      margin-top: 14px;
+    }
+
+    .batch-item {
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      padding: 10px 12px;
+      width: 100%;
+    }
+
+    .batch-item strong {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .batch-item span {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .batch-status.done {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--accent-strong);
+    }
+
+    .batch-status.failed {
+      background: rgba(251, 113, 133, 0.12);
+      border: 1px solid rgba(251, 113, 133, 0.2);
+      color: #fecdd3;
+    }
+
+    .batch-status.processing,
+    .batch-status.queued {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
     }
 
     .preview {
@@ -353,29 +456,39 @@
   <main class="page">
     <section class="hero">
       <div class="hero-copy">
-        <span class="eyebrow">Localhost UI</span>
-        <h1>Drop in a PDF. Get back clean markdown.</h1>
+        <span class="eyebrow">Self-hosted · Open Source · MIT License</span>
+        <h1>Drop a PDF. Get structured Markdown — with footnotes, LaTeX, and figure links.</h1>
         <p>
-          PaperFlow now includes a local web UI for self-hosted use. Choose the parser mode that fits your setup:
-          <strong>PyMuPDF</strong> for the fastest free local path, or <strong>Marker API</strong> for the best quality.
+          PaperFlow turns raw PDF→Markdown into structured knowledge. Citations become
+          clickable footnotes. LaTeX renders perfectly. Figure references become internal links.
+          Choose a free local parser or connect a cloud API for best quality.
         </p>
         <div class="hero-actions">
-          <a class="hero-link" href="/project">Project Page</a>
+          <a class="hero-link" href="https://github.com/TylerMorrison21/paperflow" target="_blank">⭐ GitHub</a>
           <a class="hero-link secondary" href="/docs">API Docs</a>
+          <a class="hero-link secondary" href="mailto:support@paperflowing.com?subject=Enterprise%20deployment">Enterprise Deployment</a>
         </div>
       </div>
       <div class="hero-card">
         <h3>Recommended defaults</h3>
-        <pre><code>PyMuPDF
-- free
-- local
-- fastest
-- lower quality
-
-Marker API
-- requires DATALAB_API_KEY
-- best markdown quality
-- best footnotes / figure links</code></pre>
+        <pre><code>Parser Options
+PyMuPDF (free, local)
+├── No API key needed
+├── Good for text-heavy PDFs
+└── Footnotes & LaTeX normalization included
+Marker API (best quality)
+├── Requires Datalab account ($25/mo free credits)
+├── Best for academic papers, complex layouts
+└── Superior table & equation extraction
+Self-hosted Marker / MinerU
+├── Full data sovereignty
+├── Your GPU, your network
+└── Best for law firms, finance, healthcare</code></pre>
+        <div class="parser-badges" style="margin-top: 14px;">
+          <span class="parser-chip">Default: PyMuPDF</span>
+          <span class="parser-chip">Best quality: Marker API / Marker local</span>
+          <span class="parser-chip muted">MinerU: advanced local option</span>
+        </div>
       </div>
     </section>
 
@@ -385,7 +498,7 @@ Marker API
           <div class="section-head">
             <div>
               <h2>1. Choose parser</h2>
-              <p>PyMuPDF is the easiest local option. Marker API gives better output if you have a Datalab key.</p>
+              <p>All parsers include PaperFlow post-processing: footnotes, LaTeX normalization, figure/table links, and YAML metadata. Parser choice affects extraction quality — post-processing is always the same.</p>
             </div>
             <div class="status-badge" id="parser-badge">Loading parsers</div>
           </div>
@@ -396,18 +509,20 @@ Marker API
           <div class="section-head">
             <div>
               <h2>2. Upload PDF</h2>
-              <p>Drag a file here or pick one manually. The file stays on your local PaperFlow instance.</p>
+              <p>Your files never leave your machine. All processing happens locally (or via your configured API). Supports single and batch processing.</p>
             </div>
-            <div class="hint">PDF only</div>
+            <div class="hint">Single or batch PDF</div>
           </div>
-          <label class="dropzone" id="dropzone">
-            <input id="file-input" type="file" accept="application/pdf,.pdf" hidden />
-            <strong>Drop PDF here</strong>
-            <p>or click to choose a file</p>
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose PDF file">
+            <input id="file-input" type="file" accept="application/pdf,.pdf" multiple hidden />
+            <strong>Drop PDF file(s) here</strong>
+            <p>or click to choose one or more files</p>
             <div class="file-name" id="file-name">No file selected</div>
-          </label>
+          </div>
+          <div class="file-list" id="selected-files" style="margin-top: 14px;"></div>
           <div class="actions" style="margin-top: 16px;">
-            <button class="primary" id="convert-button" disabled>Convert PDF</button>
+            <button class="primary" id="convert-button" disabled>Convert Single PDF</button>
+            <button class="secondary" id="batch-button" disabled>Batch Process PDFs</button>
             <button class="secondary" id="clear-button">Clear</button>
           </div>
         </section>
@@ -418,14 +533,16 @@ Marker API
           <div class="section-head">
             <div>
               <h2>3. Status</h2>
-              <p>PaperFlow will poll the backend until the job finishes.</p>
+              <p>PaperFlow will poll the backend until the single job or batch run finishes.</p>
             </div>
             <div class="status-badge" id="job-status">Idle</div>
           </div>
-          <div class="status-log" id="status-log">Choose a parser, drop a PDF, then click Convert PDF.</div>
+          <div class="progress-shell"><div class="progress-bar" id="progress-bar"></div></div>
+          <div class="status-log" id="status-log">Choose a parser, drop one or more PDFs, then start a run.</div>
+          <div class="batch-list" id="batch-list"></div>
           <div class="download-row">
-            <a class="download primary disabled" id="download-markdown" href="#">Download markdown</a>
-            <a class="download secondary disabled" id="download-package" href="#">Download zip package</a>
+            <a class="download primary disabled" id="download-markdown" href="#" download>Download markdown</a>
+            <a class="download secondary disabled" id="download-package" href="#" download>Download zip package</a>
           </div>
         </section>
 
@@ -440,6 +557,17 @@ Marker API
         </section>
       </div>
     </section>
+
+    <section class="panel" style="margin-top: 22px; text-align: center;">
+      <p style="color: var(--muted); font-size: 0.92rem; max-width: 60ch; margin: 0 auto;">
+        <strong style="color: var(--text);">Need PaperFlow deployed in your organization?</strong><br>
+        Private deployment on your servers · Commercial API · Custom document integrations<br>
+        <a href="mailto:support@paperflowing.com?subject=Enterprise%20inquiry" 
+           style="color: var(--accent-strong); text-decoration: none;">
+           Contact us →
+        </a>
+      </p>
+    </section>
   </main>
 
   <script>
@@ -449,16 +577,23 @@ Marker API
     const fileInput = document.getElementById("file-input");
     const fileName = document.getElementById("file-name");
     const convertButton = document.getElementById("convert-button");
+    const batchButton = document.getElementById("batch-button");
     const clearButton = document.getElementById("clear-button");
     const jobStatus = document.getElementById("job-status");
     const statusLog = document.getElementById("status-log");
     const preview = document.getElementById("preview");
     const downloadMarkdown = document.getElementById("download-markdown");
     const downloadPackage = document.getElementById("download-package");
+    const selectedFilesEl = document.getElementById("selected-files");
+    const progressBar = document.getElementById("progress-bar");
+    const batchList = document.getElementById("batch-list");
 
     let selectedParser = null;
-    let selectedFile = null;
+    let parserCatalog = new Map();
+    let selectedFiles = [];
     let activeJobId = null;
+    let activeBatchId = null;
+    let activeParserLabel = "";
     let pollTimer = null;
 
     function setStatus(label, text, mode = "") {
@@ -467,22 +602,96 @@ Marker API
       statusLog.className = mode ? `status-log ${mode}` : "status-log";
     }
 
+    function setProgress(percent) {
+      const normalized = Math.max(0, Math.min(100, percent || 0));
+      progressBar.style.width = `${normalized}%`;
+    }
+
+    function renderBatchItems(items = []) {
+      batchList.innerHTML = "";
+      for (const item of items) {
+        const row = document.createElement("div");
+        row.className = "batch-item";
+        row.innerHTML = `
+          <div>
+            <strong>${item.filename}</strong>
+            <span>${item.error || item.parser || ""}</span>
+          </div>
+          <div class="batch-status ${item.status || "queued"}">${item.status || "queued"}</div>
+        `;
+        batchList.appendChild(row);
+      }
+    }
+
     function resetDownloads() {
       downloadMarkdown.classList.add("disabled");
       downloadPackage.classList.add("disabled");
       downloadMarkdown.removeAttribute("href");
       downloadPackage.removeAttribute("href");
+      delete downloadMarkdown.dataset.url;
+      delete downloadPackage.dataset.url;
+      delete downloadMarkdown.dataset.filename;
+      delete downloadPackage.dataset.filename;
+    }
+
+    function getParserLabel(parserId) {
+      return parserCatalog.get(parserId)?.label || parserId || "Unknown parser";
     }
 
     function enableDownloads(jobId) {
-      downloadMarkdown.href = `/api/jobs/${jobId}/result`;
-      downloadPackage.href = `/api/jobs/${jobId}/package`;
+      downloadMarkdown.href = "#";
+      downloadPackage.href = "#";
+      downloadMarkdown.dataset.url = `/api/jobs/${jobId}/result`;
+      downloadPackage.dataset.url = `/api/jobs/${jobId}/package`;
+      downloadMarkdown.dataset.filename = `paperflow-${jobId}.md`;
+      downloadPackage.dataset.filename = `paperflow-${jobId}.zip`;
       downloadMarkdown.classList.remove("disabled");
       downloadPackage.classList.remove("disabled");
     }
 
+    function enableBatchDownload(batchId) {
+      downloadMarkdown.classList.add("disabled");
+      delete downloadMarkdown.dataset.url;
+      delete downloadMarkdown.dataset.filename;
+      downloadMarkdown.removeAttribute("href");
+
+      downloadPackage.href = "#";
+      downloadPackage.dataset.url = `/api/batches/${batchId}/package`;
+      downloadPackage.dataset.filename = `paperflow-batch-${batchId}.zip`;
+      downloadPackage.classList.remove("disabled");
+    }
+
+    async function triggerDownload(anchor) {
+      if (anchor.classList.contains("disabled")) {
+        return;
+      }
+
+      const url = anchor.dataset.url;
+      const filename = anchor.dataset.filename || "download";
+      if (!url) {
+        return;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        setStatus("Error", `Download failed: ${response.status}`, "error");
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const tempLink = document.createElement("a");
+      tempLink.href = blobUrl;
+      tempLink.download = filename;
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      tempLink.remove();
+      URL.revokeObjectURL(blobUrl);
+    }
+
     function updateConvertState() {
-      convertButton.disabled = !(selectedParser && selectedFile);
+      convertButton.disabled = !(selectedParser && selectedFiles.length === 1);
+      batchButton.disabled = !(selectedParser && selectedFiles.length > 1);
     }
 
     function pickParser(parserId) {
@@ -498,6 +707,7 @@ Marker API
       const response = await fetch("/api/parsers");
       const data = await response.json();
       const parsers = data.parsers || [];
+      parserCatalog = new Map(parsers.map((parser) => [parser.id, parser]));
 
       parserGrid.innerHTML = "";
 
@@ -513,10 +723,15 @@ Marker API
           <input type="radio" name="parser" value="${parser.id}" ${parser.default ? "checked" : ""} ${parser.configured ? "" : "disabled"} />
           <div class="parser-row">
             <div class="parser-title">${parser.label}</div>
-            <div class="parser-meta">${parser.speed} · ${parser.quality}</div>
+            <div class="parser-meta">${parser.speed} / ${parser.quality}</div>
           </div>
           <p class="parser-note">${parser.description}</p>
-          <p class="parser-note"><strong>${parser.setup}</strong></p>
+          <div class="parser-badges">
+            ${parser.default ? '<span class="parser-chip">Default</span>' : ""}
+            ${parser.recommended ? '<span class="parser-chip">Recommended</span>' : ""}
+            <span class="parser-chip ${parser.configured ? "" : "muted"}">${parser.configured ? "Configured" : "Not configured"}</span>
+          </div>
+          <p class="parser-note parser-setup"><strong>${parser.setup}</strong></p>
         `;
 
         if (parser.configured) {
@@ -529,22 +744,44 @@ Marker API
       const defaultParser = parsers.find((parser) => parser.default && parser.configured) || parsers.find((parser) => parser.configured);
       if (defaultParser) {
         pickParser(defaultParser.id);
-        parserBadge.textContent = `${defaultParser.label} default`;
+        const configuredCount = parsers.filter((parser) => parser.configured).length;
+        parserBadge.textContent = `${configuredCount}/${parsers.length} ready`;
       } else {
         parserBadge.textContent = "No parser configured";
         setStatus("Blocked", "No parser is configured. Install PyMuPDF locally or add DATALAB_API_KEY for Marker API.", "error");
       }
     }
 
-    function handleFile(file) {
-      if (!file) {
-        selectedFile = null;
+    function renderSelectedFiles() {
+      selectedFilesEl.innerHTML = "";
+      for (const file of selectedFiles) {
+        const pill = document.createElement("div");
+        pill.className = "file-pill";
+        pill.textContent = `${file.name} / ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        selectedFilesEl.appendChild(pill);
+      }
+    }
+
+    function handleFiles(files) {
+      const normalized = Array.from(files || []).filter(Boolean);
+      selectedFiles = normalized;
+      renderSelectedFiles();
+
+      if (!normalized.length) {
         fileName.textContent = "No file selected";
         updateConvertState();
         return;
       }
-      selectedFile = file;
-      fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
+      if (normalized.length === 1) {
+        const file = normalized[0];
+        fileName.textContent = `${file.name} / ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        updateConvertState();
+        return;
+      }
+
+      const totalMb = normalized.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024;
+      fileName.textContent = `${normalized.length} PDFs selected / ${totalMb.toFixed(2)} MB total`;
       updateConvertState();
     }
 
@@ -556,18 +793,22 @@ Marker API
         clearInterval(pollTimer);
         pollTimer = null;
         jobStatus.textContent = "Done";
+        setProgress(100);
         setStatus("Done", "Conversion finished. You can download the markdown or the zip package.");
         enableDownloads(jobId);
         const markdown = await fetch(`/api/jobs/${jobId}/result`).then((res) => res.text());
         preview.textContent = markdown.slice(0, 3500);
+        renderBatchItems([]);
         return;
       }
 
       if (data.status === "failed") {
         clearInterval(pollTimer);
         pollTimer = null;
+        setProgress(100);
         setStatus("Failed", data.error || "PaperFlow failed to convert this PDF.", "error");
         preview.textContent = "No preview available because the conversion failed.";
+        renderBatchItems([]);
         return;
       }
 
@@ -578,11 +819,59 @@ Marker API
         return;
       }
 
-      setStatus("Processing", `Job ${jobId} is still running...\nSelected parser: ${selectedParser}`);
+      setProgress(45);
+      setStatus("Processing", `Job ${jobId} is still running...\nParser: ${activeParserLabel || getParserLabel(selectedParser)}`);
+    }
+
+    async function pollBatch(batchId) {
+      const response = await fetch(`/api/batches/${batchId}/status`);
+      const data = await response.json();
+      const total = data.total || 0;
+      const completed = data.completed || 0;
+      const failed = data.failed || 0;
+      const finished = completed + failed;
+      const percent = total ? Math.round((finished / total) * 100) : 0;
+      renderBatchItems(data.items || []);
+
+      if (data.status === "done") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        jobStatus.textContent = "Batch done";
+        setProgress(100);
+        setStatus(
+          "Batch done",
+          `Processed ${completed}/${total} PDFs. Failed: ${failed}. Download the combined zip package.`
+        );
+        enableBatchDownload(batchId);
+        preview.textContent = JSON.stringify(data.items || [], null, 2);
+        return;
+      }
+
+      if (data.status === "failed") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        setProgress(100);
+        setStatus("Batch failed", data.error || "Batch processing failed.", "error");
+        preview.textContent = JSON.stringify(data.items || [], null, 2);
+        return;
+      }
+
+      if (data.status === "not_found") {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        setStatus("Missing", "The backend no longer has this batch.", "error");
+        return;
+      }
+
+      setProgress(percent || 12);
+      setStatus(
+        "Batch processing",
+        `Batch ${batchId} running...\nCompleted: ${completed}/${total}\nFailed: ${failed}\nParser: ${activeParserLabel || getParserLabel(selectedParser)}`
+      );
     }
 
     async function submitFile() {
-      if (!selectedFile || !selectedParser) {
+      if (selectedFiles.length !== 1 || !selectedParser) {
         return;
       }
 
@@ -591,18 +880,28 @@ Marker API
         pollTimer = null;
       }
 
+      activeBatchId = null;
+      activeParserLabel = getParserLabel(selectedParser);
       resetDownloads();
+      renderBatchItems([]);
+      setProgress(8);
       preview.textContent = "Waiting for processed markdown...";
       setStatus("Uploading", "Submitting PDF to PaperFlow...");
 
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", selectedFiles[0]);
       formData.append("parser", selectedParser);
 
-      const response = await fetch("/api/submit", {
-        method: "POST",
-        body: formData,
-      });
+      let response;
+      try {
+        response = await fetch("/api/submit", {
+          method: "POST",
+          body: formData,
+        });
+      } catch (error) {
+        setStatus("Error", `Upload failed: ${error.message}`, "error");
+        return;
+      }
 
       let payload = {};
       try {
@@ -617,13 +916,73 @@ Marker API
       }
 
       activeJobId = payload.job_id;
+      setProgress(18);
       setStatus("Queued", payload.message || `Job ${activeJobId} queued.`);
       pollTimer = setInterval(() => pollJob(activeJobId), 2000);
       pollJob(activeJobId);
     }
 
+    async function submitBatch() {
+      if (selectedFiles.length < 2 || !selectedParser) {
+        return;
+      }
+
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+
+      activeJobId = null;
+      activeParserLabel = getParserLabel(selectedParser);
+      resetDownloads();
+      setProgress(8);
+      preview.textContent = "Waiting for batch summary...";
+      setStatus("Uploading batch", `Submitting ${selectedFiles.length} PDFs to PaperFlow...`);
+
+      const formData = new FormData();
+      for (const file of selectedFiles) {
+        formData.append("files", file);
+      }
+      formData.append("parser", selectedParser);
+
+      let response;
+      try {
+        response = await fetch("/api/submit-batch", {
+          method: "POST",
+          body: formData,
+        });
+      } catch (error) {
+        setStatus("Error", `Batch upload failed: ${error.message}`, "error");
+        return;
+      }
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        setStatus("Error", payload.detail || "Batch upload failed.", "error");
+        return;
+      }
+
+      activeBatchId = payload.batch_id;
+      setProgress(14);
+      setStatus("Batch queued", payload.message || `Batch ${activeBatchId} queued.`);
+      pollTimer = setInterval(() => pollBatch(activeBatchId), 2500);
+      pollBatch(activeBatchId);
+    }
+
     dropzone.addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+    dropzone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
 
     ["dragenter", "dragover"].forEach((eventName) => {
       dropzone.addEventListener(eventName, (event) => {
@@ -640,22 +999,34 @@ Marker API
     });
 
     dropzone.addEventListener("drop", (event) => {
-      const file = event.dataTransfer.files[0];
-      handleFile(file);
+      handleFiles(event.dataTransfer.files);
     });
 
     convertButton.addEventListener("click", submitFile);
+    batchButton.addEventListener("click", submitBatch);
+    downloadMarkdown.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await triggerDownload(downloadMarkdown);
+    });
+    downloadPackage.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await triggerDownload(downloadPackage);
+    });
     clearButton.addEventListener("click", () => {
-      handleFile(null);
+      handleFiles([]);
       fileInput.value = "";
       activeJobId = null;
+      activeBatchId = null;
+      activeParserLabel = "";
       if (pollTimer) {
         clearInterval(pollTimer);
         pollTimer = null;
       }
       resetDownloads();
+      renderBatchItems([]);
+      setProgress(0);
       preview.textContent = "Preview will appear here after processing completes.";
-      setStatus("Idle", "Choose a parser, drop a PDF, then click Convert PDF.");
+      setStatus("Idle", "Choose a parser, drop one or more PDFs, then start a run.");
     });
 
     loadParsers().catch((error) => {

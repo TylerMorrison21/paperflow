@@ -3,10 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PaperFlow | Open-Source PDF Post-Processing</title>
+  <title>PaperFlow - Open Source PDF to Markdown Post-Processing Engine</title>
   <meta
     name="description"
-    content="PaperFlow is an open-source post-processing layer that turns raw PDF-to-Markdown output into structured knowledge."
+    content="Turn academic PDFs into structured Markdown with footnotes, LaTeX equations, figure links, and YAML metadata. Self-hosted Web UI, supports Marker, MinerU, PyMuPDF. Free and open source."
+  />
+  <meta
+    name="keywords"
+    content="pdf to markdown, academic pdf, latex, obsidian, footnotes, marker, mineru, open source, self-hosted, document processing, rag, knowledge management"
+  />
+  <meta
+    property="og:title"
+    content="PaperFlow - PDF parsers give you text. PaperFlow gives you knowledge."
+  />
+  <meta
+    property="og:description"
+    content="Open-source PDF to Markdown engine with local Web UI. Footnotes, LaTeX, figure links, metadata."
   />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
@@ -86,30 +98,6 @@
       max-width: 1180px;
       position: relative;
       z-index: 1;
-    }
-
-    .notice {
-      align-items: center;
-      background: rgba(11, 17, 14, 0.78);
-      border: 1px solid rgba(16, 185, 129, 0.24);
-      border-radius: 999px;
-      color: var(--accent-strong);
-      display: inline-flex;
-      font-size: 0.78rem;
-      gap: 10px;
-      letter-spacing: 0.04em;
-      margin-bottom: 24px;
-      padding: 10px 16px;
-      text-transform: uppercase;
-    }
-
-    .notice::before {
-      background: var(--accent);
-      border-radius: 50%;
-      content: "";
-      display: inline-block;
-      height: 9px;
-      width: 9px;
     }
 
     .hero {
@@ -451,21 +439,71 @@
 
     .pipeline-grid,
     .stats-grid,
-    .footer-grid {
+    .footer-grid,
+    .feature-pill-row,
+    .enterprise-grid {
       display: grid;
       gap: 16px;
+    }
+
+    .feature-pill-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .feature-pill {
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px solid rgba(16, 185, 129, 0.16);
+      border-radius: 999px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .ui-showcase {
+      display: grid;
+      gap: 18px;
+    }
+
+    .ui-mockup {
+      background: linear-gradient(180deg, rgba(13, 14, 14, 0.98), rgba(8, 10, 9, 0.98));
+      border: 1px solid rgba(16, 185, 129, 0.24);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .ui-mockup pre {
+      color: #d9fce9;
+      font-size: 0.84rem;
+      overflow-x: auto;
+      padding: 20px;
+      white-space: pre;
     }
 
     .pipeline-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
+    .enterprise-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 8px;
+    }
+
     .pipeline-step,
-    .stat-card {
+    .stat-card,
+    .enterprise-card {
       background: rgba(9, 13, 11, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       padding: 20px;
+    }
+
+    .enterprise-card {
+      background: linear-gradient(180deg, rgba(13, 14, 14, 0.96), rgba(9, 10, 10, 0.96));
+      border-color: rgba(16, 185, 129, 0.18);
     }
 
     .step-index {
@@ -477,13 +515,15 @@
     }
 
     .pipeline-step h3,
-    .stat-card h3 {
+    .stat-card h3,
+    .enterprise-card h3 {
       font-size: 1.05rem;
       margin-bottom: 8px;
     }
 
     .pipeline-step p,
     .stat-card p,
+    .enterprise-card p,
     footer p {
       color: var(--muted);
     }
@@ -531,6 +571,8 @@
       .pipeline-grid,
       .stats-grid,
       .footer-grid,
+      .feature-pill-row,
+      .enterprise-grid,
       .comparison {
         grid-template-columns: 1fr;
       }
@@ -568,38 +610,31 @@
 </head>
 <body>
   <main class="page">
-    <div class="notice">Playground is shut down. PaperFlow is fully open-source.</div>
-
     <section class="hero">
       <div class="hero-grid">
         <div>
-          <span class="eyebrow">Open-Source PDF Post-Processing</span>
+          <span class="eyebrow">Open Source &middot; Self-Hosted &middot; MIT License</span>
           <h1>PDF parsers give you text. PaperFlow gives you knowledge.</h1>
           <p class="lede">
-            Open-source post-processing layer that turns raw PDF-&gt;Markdown into structured knowledge
-            with working footnotes, LaTeX equations, figure links, and YAML metadata.
+            Open-source PDF-&gt;Markdown engine with a local Web UI.
+            Choose your parser - run free locally or connect a cloud API. Get
+            structured Markdown with footnotes, LaTeX, figure links, and metadata.
           </p>
           <div class="cta-row">
-            <a class="cta primary" href="https://github.com/TylerMorrison21/paperflow" target="_blank" rel="noreferrer">
-              Star on GitHub
+            <a class="cta primary" href="#quickstart">
+              Get Started
+            </a>
+            <a class="cta secondary" href="https://github.com/TylerMorrison21/paperflow" target="_blank" rel="noreferrer">
+              &#11088; GitHub
             </a>
             <a class="cta secondary" href="https://pypi.org/project/paperflow-postprocess/" target="_blank" rel="noreferrer">
-              pip install paperflow-postprocess
+              PyPI
             </a>
           </div>
-          <p class="hero-meta">
-            Static project page. No upload form. No paid playground. Bring your own parser, run the pipeline yourself.
-          </p>
+          <p class="hero-meta">Run it on your machine, your server, or your own document stack.</p>
         </div>
 
         <div class="hero-aside">
-          <div class="mini-card">
-            <h3>What changed</h3>
-            <p>
-              The hosted playground is gone. PaperFlow is now focused on the open-source layer that upgrades parser output
-              into knowledge-ready Markdown.
-            </p>
-          </div>
           <div class="mini-card">
             <h3>Core idea</h3>
             <pre><code>raw parser output
@@ -611,6 +646,46 @@
             <h3>Use it with</h3>
             <p>Marker API, Marker local, MinerU, Docling, LlamaParse, PyMuPDF4LLM, or your own extractor.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Local Web UI - runs on your machine</h2>
+          <p>Drop PDFs, choose your parser, download structured Markdown. Your files never leave your machine.</p>
+        </div>
+        <div class="pill">Local-first workflow</div>
+      </div>
+
+      <div class="ui-showcase">
+        <div class="ui-mockup">
+          <pre><code>+---------------------------------------------+
+|  PaperFlow Local UI                         |
+|                                             |
+|  1. Choose parser                           |
+|     (*) PyMuPDF (free, local, fastest)      |
+|     ( ) Marker API (best quality)           |
+|     ( ) Marker self-hosted                  |
+|     ( ) MinerU                              |
+|                                             |
+|  2. Drop PDF here                           |
+|     +-------------------------------+       |
+|     |  paper.pdf  /  2.4 MB         |       |
+|     +-------------------------------+       |
+|                                             |
+|  [Convert]  [Batch Process]                 |
+|                                             |
+|  3. Download                                |
+|      paper.md     paperflow.zip             |
++---------------------------------------------+</code></pre>
+        </div>
+
+        <div class="feature-pill-row">
+          <div class="feature-pill">100% local - files never leave your machine</div>
+          <div class="feature-pill">Batch processing - convert multiple PDFs at once</div>
+          <div class="feature-pill">Swap parsers - PyMuPDF, Marker, MinerU, or your own</div>
         </div>
       </div>
     </section>
@@ -653,41 +728,86 @@ authors:
       <p class="comparison-note">
         Works with any Markdown editor: Obsidian, Notion, Logseq, VS Code, or your RAG pipeline.
       </p>
+
+      <div class="parser-table-wrap" style="margin-top: 24px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Source PDF</th>
+              <th>Generic converter</th>
+              <th>PaperFlow output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <img
+                  src="https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/sample-paper.jpg"
+                  alt="Source PDF comparison"
+                  style="border-radius: 14px; display: block; max-width: 100%;"
+                />
+              </td>
+              <td>
+                <img
+                  src="https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/pydoc-converted-online-pdf-converter.jpg"
+                  alt="Generic converter comparison"
+                  style="border-radius: 14px; display: block; max-width: 100%;"
+                />
+              </td>
+              <td>
+                <img
+                  src="https://raw.githubusercontent.com/TylerMorrison21/paperflow/master/docs/compare/paperflow-converted.jpg"
+                  alt="PaperFlow output comparison"
+                  style="border-radius: 14px; display: block; max-width: 100%;"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="section" id="quick-start">
+    <section class="section" id="quickstart">
         <div class="section-head">
           <div class="section-title">
-            <h2>Quick Start</h2>
-            <p>Start with the simplest path: self-host the API, add your Datalab key, then send PDFs to PaperFlow.</p>
+            <h2>Get started in 60 seconds</h2>
+            <p>Run the local Web UI, then choose whatever parser is available on your machine.</p>
           </div>
-        <div class="pill">Recommended path first</div>
+        <div class="pill">Local Web UI first</div>
         </div>
 
         <div class="tabs">
+          <div class="code-block">
+            <div class="code-label">Quick Start</div>
+            <pre><code>git clone https://github.com/TylerMorrison21/paperflow
+cd paperflow
+pip install -r requirements.txt
+uvicorn api.main:app --port 8000
+# Open http://localhost:8000</code></pre>
+          </div>
+
+          <p class="comparison-note" style="margin-top: 0; text-align: left;">
+            That's it. The Web UI auto-detects which parsers are available.
+          </p>
+
           <div class="tab-list" role="tablist" aria-label="Quick start tabs">
-          <button class="tab-button" role="tab" aria-selected="true" aria-controls="tab-python" id="btn-python">Simple API</button>
+          <button class="tab-button" role="tab" aria-selected="true" aria-controls="tab-python" id="btn-python">Python package</button>
           <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-mcp" id="btn-mcp">MCP Server</button>
-          <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-pipeline" id="btn-pipeline">Python package</button>
+          <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-pipeline" id="btn-pipeline">API calls</button>
           </div>
 
         <section class="tab-panel active" id="tab-python" role="tabpanel" aria-labelledby="btn-python">
           <div class="panel-grid">
             <div class="code-block">
-              <div class="code-label">Self-hosted API</div>
-              <pre><code>git clone https://github.com/TylerMorrison21/paperflow
-cd paperflow
-cp .env.example .env
-# Add DATALAB_API_KEY
-uvicorn api.main:app --port 8000</code></pre>
+              <div class="code-label">Install</div>
+              <pre><code>pip install paperflow-postprocess</code></pre>
             </div>
             <div class="code-block">
-              <div class="code-label">Submit PDF</div>
-              <pre><code>curl -X POST http://localhost:8000/api/submit \
-  -F "file=@paper.pdf"
+              <div class="code-label">Python</div>
+              <pre><code>from paperflow_postprocess import enhance
 
-curl http://localhost:8000/api/jobs/&lt;job_id&gt;/result -o paper.md
-curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</code></pre>
+raw_md = open("parser_output.md").read()
+result = enhance(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
             </div>
           </div>
         </section>
@@ -734,15 +854,19 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
         <section class="tab-panel" id="tab-pipeline" role="tabpanel" aria-labelledby="btn-pipeline">
           <div class="panel-grid">
             <div class="code-block">
-              <div class="code-label">Install</div>
-              <pre><code>pip install paperflow-postprocess</code></pre>
-            </div>
-            <div class="code-block">
-              <div class="code-label">Python</div>
-              <pre><code>from paperflow_postprocess import enhance
+              <div class="code-label">Submit PDF</div>
+              <pre><code>curl -X POST http://localhost:8000/api/submit \
+  -F "file=@paper.pdf"
 
-raw_md = open("parser_output.md").read()
-result = enhance(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
+curl http://localhost:8000/api/jobs/&lt;job_id&gt;/result -o paper.md
+curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</code></pre>
+            </div>
+            <div class="panel-copy">
+              <p>Run the local API and send PDFs to it directly from scripts, curl, or your own document workflow.</p>
+              <ul>
+                <li>Use `PyMuPDF` locally for the easiest path.</li>
+                <li>Add `parser=marker_api` when you want the best extraction quality.</li>
+              </ul>
             </div>
           </div>
         </section>
@@ -807,7 +931,7 @@ result = enhance(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
         </table>
       </div>
 
-      <p class="tagline">Default easiest path: PyMuPDF. Best quality path: Datalab Marker. Other parsers are best-effort.</p>
+      <p class="tagline">Parsing is commoditized. Post-processing is the product.</p>
     </section>
 
     <section class="section">
@@ -841,6 +965,39 @@ result = enhance(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
           <p>Structured Markdown ready for editors, note systems, search indexes, and agents.</p>
         </article>
       </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>Need PaperFlow in your organization?</h2>
+          <p>Deploy it privately, use a hosted API, or wire it into the systems your team already works in.</p>
+        </div>
+        <div class="pill">Enterprise options</div>
+      </div>
+
+      <div class="enterprise-grid">
+        <article class="enterprise-card">
+          <h3>Private Deployment</h3>
+          <p>Docker image on your servers. Air-gapped. Your data never touches the internet.</p>
+        </article>
+        <article class="enterprise-card">
+          <h3>Commercial API</h3>
+          <p>Hosted endpoint with SLA. Pay per page.</p>
+        </article>
+        <article class="enterprise-card">
+          <h3>Custom Integration</h3>
+          <p>Connect to iManage, SharePoint, NetDocuments, or your document management system.</p>
+        </article>
+      </div>
+
+      <div class="cta-row" style="margin-top: 22px; margin-bottom: 10px;">
+        <a class="cta primary" href="mailto:support@paperflowing.com">Contact us - support@paperflowing.com</a>
+      </div>
+
+      <p class="comparison-note">
+        PaperFlow is already used by researchers and developers in 40+ countries. MIT licensed for all use cases.
+      </p>
     </section>
 
     <section class="section">
@@ -880,7 +1037,7 @@ result = enhance(raw_md, images={}, metadata={"title": "My Paper"})</code></pre>
       <div class="footer-grid">
         <div>
           <span class="eyebrow">PaperFlow</span>
-          <h2>MIT License. Built by Philip Liu.</h2>
+          <h2>MIT License &middot; Built by Philip Liu</h2>
           <p>
             Open-source infrastructure for turning parser output into structured knowledge. Host it yourself, modify it,
             and wire it into any PDF pipeline you already trust.
