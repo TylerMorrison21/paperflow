@@ -644,7 +644,7 @@
           </div>
           <div class="mini-card">
             <h3>Use it with</h3>
-            <p>Marker API, Marker local, PaddleOCR-VL, Docling, LlamaParse, PyMuPDF4LLM, or your own extractor.</p>
+            <p>PyMuPDF for fast digital PDFs, PaddleOCR-VL for local AI parsing, Marker API for easiest premium quality, or self-hosted Marker for private infrastructure.</p>
           </div>
         </div>
       </div>
@@ -654,7 +654,7 @@
       <div class="section-head">
         <div class="section-title">
           <h2>Local Web UI - runs on your machine</h2>
-          <p>Drop PDFs, choose your parser, download structured Markdown. Your files never leave your machine.</p>
+          <p>Use the quick decision guide, pick the parser that fits your document and privacy needs, then download structured Markdown. Your files stay local unless you explicitly choose the cloud API.</p>
         </div>
         <div class="pill">Local-first workflow</div>
       </div>
@@ -664,16 +664,25 @@
           <pre><code>+---------------------------------------------+
 |  PaperFlow Local UI                         |
 |                                             |
+|  Quick decision guide                       |
+|  Standard digital PDF? -> PyMuPDF           |
+|  Scan / formulas / OCR? -> PaddleOCR-VL     |
+|  Easiest premium path? -> Marker API        |
+|  Private enterprise setup? -> Self-hosted   |
+|                                             |
 |  1. Choose parser                           |
-|     (*) PyMuPDF (free, local, fastest)      |
-|     ( ) Marker API (best quality)           |
-|     ( ) Marker self-hosted                  |
-|     ( ) PaddleOCR-VL-0.9B                  |
+|     (*) PyMuPDF Local                       |
+|     ( ) PaddleOCR-VL-0.9B                   |
+|     ( ) Marker API (Datalab.to)             |
+|     ( ) Enterprise Marker Self-Hosted       |
 |                                             |
 |  2. Drop PDF here                           |
 |     +-------------------------------+       |
 |     |  paper.pdf  /  2.4 MB         |       |
 |     +-------------------------------+       |
+|                                             |
+|  Setup, tradeoffs, and exact commands       |
+|  appear for the selected parser             |
 |                                             |
 |  [Convert]  [Batch Process]                 |
 |                                             |
@@ -685,7 +694,7 @@
         <div class="feature-pill-row">
           <div class="feature-pill">100% local - files never leave your machine</div>
           <div class="feature-pill">Batch processing - convert multiple PDFs at once</div>
-          <div class="feature-pill">Swap parsers - PyMuPDF, Marker, PaddleOCR-VL, or your own</div>
+          <div class="feature-pill">Scenario-driven parser chooser with setup instructions</div>
         </div>
       </div>
     </section>
@@ -771,7 +780,7 @@ authors:
         <div class="section-head">
           <div class="section-title">
             <h2>Get started in 60 seconds</h2>
-            <p>Run the local Web UI, then choose whatever parser is available on your machine.</p>
+            <p>Run the local Web UI, then choose the parser that matches your document type, privacy needs, and setup tolerance.</p>
           </div>
         <div class="pill">Local Web UI first</div>
         </div>
@@ -787,7 +796,7 @@ uvicorn api.main:app --port 8000
           </div>
 
           <p class="comparison-note" style="margin-top: 0; text-align: left;">
-            That's it. The Web UI auto-detects which parsers are available.
+            That's it. The Web UI checks which parsers are actually ready, then shows setup steps and exact commands for each option.
           </p>
 
           <div class="tab-list" role="tablist" aria-label="Quick start tabs">
@@ -864,8 +873,9 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
             <div class="panel-copy">
               <p>Run the local API and send PDFs to it directly from scripts, curl, or your own document workflow.</p>
               <ul>
-                <li>Use `PyMuPDF` locally for the easiest path.</li>
-                <li>Add `parser=marker_api` when you want the best extraction quality.</li>
+                <li>Use `parser=pymupdf` for standard digital PDFs and the fastest local path.</li>
+                <li>Use `parser=paddleocr_vl` for scans, formulas, and more complex layouts.</li>
+                <li>Use `parser=marker_api` for the easiest premium-quality cloud path.</li>
               </ul>
             </div>
           </div>
@@ -876,10 +886,10 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
     <section class="section">
         <div class="section-head">
           <div class="section-title">
-          <h2>PDF Parser Compatibility</h2>
-          <p>The best experience is Marker. Other parsers can work, but you may need to tune the markdown shape.</p>
+          <h2>Parser Options</h2>
+          <p>Choose the parser by workflow, not by raw specs. PaperFlow applies the same post-processing after extraction.</p>
           </div>
-        <div class="pill">Marker-first compatibility</div>
+        <div class="pill">Quick decision guide</div>
         </div>
 
         <div class="parser-table-wrap">
@@ -887,45 +897,45 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
             <thead>
               <tr>
                 <th>Parser</th>
-                <th>Status</th>
-                <th>Notes</th>
+                <th>Use it when</th>
+                <th>Positioning</th>
               </tr>
             </thead>
           <tbody>
             <tr>
-              <td>PyMuPDF</td>
-              <td>Fast local fallback</td>
-              <td>Free, fastest, easiest setup, but lower quality</td>
-            </tr>
-            <tr>
-              <td>Marker API (Datalab)</td>
-              <td>Fully tested</td>
-              <td>Recommended. Sign up at datalab.to</td>
-            </tr>
-            <tr>
-              <td>Marker (self-hosted)</td>
-              <td>Fully tested</td>
-              <td>Uses the official marker_single CLI locally</td>
+              <td>PyMuPDF Local</td>
+              <td>You have a standard digital PDF and want the fastest free local path</td>
+              <td>Default choice for contracts, reports, invoices, and high-volume text-layer PDFs</td>
             </tr>
             <tr>
               <td>PaddleOCR-VL-0.9B</td>
-              <td>Partial</td>
-              <td>Uses the official paddleocr doc_parser CLI locally on CPU</td>
+              <td>You need local AI for scans, equations, tables, or complex academic layouts</td>
+              <td>Best local option when quality matters and cloud upload is off the table</td>
+            </tr>
+            <tr>
+              <td>Marker API (Datalab.to)</td>
+              <td>You want the easiest premium-quality setup and cloud processing is acceptable</td>
+              <td>Fastest route to premium extraction with your own API key</td>
+            </tr>
+            <tr>
+              <td>Enterprise Marker Self-Hosted</td>
+              <td>You need private infrastructure, compliance, and enterprise control</td>
+              <td>Top-tier quality on your own servers or private cloud</td>
             </tr>
             <tr>
               <td>Docling</td>
-              <td>Partial</td>
-              <td>Basic cleanup works, links untested</td>
+              <td>You want to experiment with another upstream parser</td>
+              <td>Supported as an external parser input into the PaperFlow post-processing pipeline</td>
             </tr>
             <tr>
               <td>LlamaParse</td>
-              <td>Partial</td>
-              <td>Output format differs, YMMV</td>
+              <td>You already use it and want to normalize downstream markdown</td>
+              <td>Useful as an upstream source, but output shape may vary</td>
             </tr>
             <tr>
               <td>Others</td>
-              <td>Unknown</td>
-              <td>PRs welcome to add parser adapters</td>
+              <td>You have a parser that can already emit markdown</td>
+              <td>PaperFlow is parser-agnostic on the post-processing side</td>
             </tr>
           </tbody>
         </table>

@@ -8,7 +8,7 @@
 with working footnotes, LaTeX equations, figure links, and metadata.**
 
 PaperFlow is an open-source post-processing engine for PDF->Markdown 
-pipelines. It takes raw Markdown from any PDF parser (Marker, MinerU, 
+pipelines. It takes raw Markdown from any PDF parser (Marker, PaddleOCR-VL, 
 PyMuPDF, Docling, LlamaParse) and upgrades it into structured output 
 that works in Obsidian, Notion, Logseq, or any RAG pipeline.
 
@@ -51,7 +51,7 @@ pip install paperflow-postprocess
 git clone https://github.com/TylerMorrison21/paperflow
 cd paperflow
 cp .env.example .env
-# Optional: add DATALAB_API_KEY to .env for Marker API
+pip install -r requirements.txt
 uvicorn api.main:app --port 8000
 ```
 
@@ -61,7 +61,7 @@ Then open the local UI:
 http://localhost:8000/
 ```
 
-The local UI auto-detects which parsers are ready on your machine.
+The local UI shows a quick decision guide, checks which parsers are actually ready on your machine, and displays exact setup commands for each parser option.
 
 ### Option B: Python package only
 
@@ -106,7 +106,16 @@ Use Marker API instead of the default PyMuPDF parser:
 ```bash
 curl -X POST http://localhost:8000/api/submit \
   -F "file=@paper.pdf" \
-  -F "parser=marker_api"
+  -F "parser=marker_api" \
+  -F "marker_api_key=your_datalab_api_key"
+```
+
+Use PaddleOCR-VL for scanned PDFs or more complex layouts:
+
+```bash
+curl -X POST http://localhost:8000/api/submit \
+  -F "file=@paper.pdf" \
+  -F "parser=paddleocr_vl"
 ```
 
 Poll for completion:
@@ -131,18 +140,19 @@ curl http://localhost:8000/api/jobs/<job_id>/package -o paperflow.zip
 
 If you want the simplest path from PDF to usable markdown, run the local UI and pick the parser that matches your needs.
 
-- `PyMuPDF` is the default. It is free, local, and fastest.
-- `Marker API (Datalab)` gives the best output quality. Add `DATALAB_API_KEY` and it is ready.
-- `Marker self-hosted` works if you have the official `marker_single` CLI installed locally.
-- `MinerU` works if you already have the official `mineru` CLI installed locally.
+- `PyMuPDF Local` is the default. It is free, local, and fastest for standard digital PDFs.
+- `PaddleOCR-VL-0.9B` is the best free local choice for scanned PDFs, formulas, and complex layouts.
+- `Marker API (Datalab.to)` is the easiest premium-quality path. The UI requires the user's own `marker_api_key`.
+- `Enterprise Marker Self-Hosted` works if you have the official `marker_single` CLI installed locally.
 
 Recommended order:
 
-1. Start with `PyMuPDF` if you want the easiest free local conversion.
-2. Switch to `Marker API` when you want the best markdown quality.
-3. Use `Marker self-hosted` or `MinerU` when you want your own local parser stack.
+1. Start with `PyMuPDF Local` for standard digital PDFs and the fastest free local conversion.
+2. Switch to `PaddleOCR-VL-0.9B` for scans, tables, formulas, and harder layouts.
+3. Use `Marker API (Datalab.to)` when you want the easiest premium-quality setup.
+4. Use `Enterprise Marker Self-Hosted` when privacy, compliance, and private infrastructure matter most.
 
-Datalab has a free credit tier, so most users can try the higher-quality path without paying first.
+Datalab usually offers trial or free credits, so most users can try the premium cloud path without committing first.
 
 ## Local Parser Setup
 
@@ -150,15 +160,23 @@ Datalab has a free credit tier, so most users can try the higher-quality path wi
 
 Nothing extra is required beyond the Python dependencies in `requirements.txt`.
 
-### Marker API (Datalab)
+### Marker API (Datalab.to)
 
-Set this in `.env`:
+For the local UI, paste your own API key into the Marker API key field.
+
+For direct API calls, send:
+
+```bash
+-F "parser=marker_api" -F "marker_api_key=your_datalab_api_key"
+```
+
+If you want a server-side default for custom integrations, you can still set:
 
 ```env
 DATALAB_API_KEY=your_datalab_api_key_here
 ```
 
-### Marker self-hosted
+### Enterprise Marker Self-Hosted
 
 Install Marker locally so `marker_single` is available on your `PATH`.
 If you use a custom command path or want extra flags, set:
@@ -174,36 +192,38 @@ PaperFlow runs the local CLI in this shape:
 marker_single input.pdf --output_dir output --output_format markdown
 ```
 
-### MinerU
+### PaddleOCR-VL-0.9B
 
-Install MinerU locally so `mineru` is available on your `PATH`.
+Install PaddleOCR locally so `paddleocr` is available on your `PATH`.
 If you use a custom command path or want extra flags, set:
 
 ```env
-MINERU_CMD=mineru
-MINERU_ARGS=
+PADDLEOCR_VL_CMD=paddleocr
+PADDLEOCR_VL_ARGS=
 ```
 
 PaperFlow runs the local CLI in this shape:
 
 ```bash
-mineru -p input.pdf -o output
+paddleocr doc_parser -i input.pdf --device cpu --save_path output
 ```
 
 ## Parser Compatibility
 
 | Parser | Status | Notes |
 |--------|--------|-------|
-| PyMuPDF | Fast local fallback | Free, fastest, easiest setup, but lower quality |
-| Marker API (Datalab) | Fully tested | Recommended. Sign up at datalab.to |
-| Marker (self-hosted) | Fully tested | Uses the official `marker_single` CLI locally |
-| MinerU | Partial | Uses the official `mineru` CLI locally |
+| PyMuPDF Local | Default local path | Free, fastest, easiest setup for text-layer PDFs |
+| PaddleOCR-VL-0.9B | Local AI path | Best free local option for scans, formulas, and harder layouts |
+| Marker API (Datalab.to) | Premium cloud path | Easiest premium-quality setup, requires `marker_api_key` |
+| Enterprise Marker Self-Hosted | Private deployment path | Uses the official `marker_single` CLI locally |
 | Docling | Partial | Basic cleanup works, links untested |
 | LlamaParse | Partial | Output format differs, YMMV |
 | Others | Unknown | PRs welcome to add parser adapters |
 
-For the easiest local path, start with PyMuPDF.  
-For the best output quality, use Marker API or self-hosted Marker.
+For the fastest local path, start with PyMuPDF.  
+For the best free local quality, use PaddleOCR-VL.  
+For the easiest premium-quality path, use Marker API.  
+For private enterprise infrastructure, use self-hosted Marker.
 
 PaperFlow is still built and tested most deeply against Marker's output format.
 Other parsers may work well for basic features (LaTeX normalization, header cleanup), but footnote conversion and figure linking are strongest on Marker-style formatting.
@@ -247,10 +267,10 @@ md = linkify_tables(md)
 
 For local parser debugging, check these first:
 
-1. `marker_single --help` or `mineru --help` works in your terminal
+1. `marker_single --help` or `paddleocr doc_parser -h` works in your terminal
 2. The parser shows as `Configured` in the local UI
 3. The parser can produce a `.md` file when run directly on one sample PDF
-4. If needed, set `MARKER_SINGLE_CMD`, `MARKER_SINGLE_ARGS`, `MINERU_CMD`, or `MINERU_ARGS` in `.env`
+4. If needed, set `MARKER_SINGLE_CMD`, `MARKER_SINGLE_ARGS`, `PADDLEOCR_VL_CMD`, or `PADDLEOCR_VL_ARGS` in `.env`
 
 ## Enterprise & Commercial Use
 

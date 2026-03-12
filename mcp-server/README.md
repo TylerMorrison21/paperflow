@@ -79,6 +79,7 @@ Optional environment variables:
 - `PAPERFLOW_API_URL`: backend base URL, default `http://localhost:8000`
 - `PAPERFLOW_EMAIL`: email value sent to the backend, default `mcp@paperflow.local`
 - `PAPERFLOW_TIMEOUT_MS`: conversion timeout in milliseconds
+- `PAPERFLOW_MARKER_API_KEY`: optional Datalab.to API key for using `marker_api` through MCP
 
 Restart Claude Desktop after updating the config.
 
@@ -94,11 +95,13 @@ The MCP server can choose a parser for the user instead of making them remember 
 
 Supported parser modes for `convert_pdf`:
 
-- `auto` (default): prefer `marker_local`, then `marker_api`, then `pymupdf`, then `mineru`
+- `auto` (default): prefer `marker_local`, then `marker_api`, then `paddleocr_vl`, then `pymupdf`
 - `best`: prefer highest-quality output
 - `local`: prefer local parsers first
 - `fast`: prefer the fastest local path
-- explicit parser id: `pymupdf`, `marker_api`, `marker_local`, `mineru`
+- explicit parser id: `pymupdf`, `paddleocr_vl`, `marker_api`, `marker_local`
+
+If you want MCP to use `marker_api`, set `PAPERFLOW_MARKER_API_KEY` in the MCP server environment so the backend receives your personal Datalab key.
 
 Use `list_parsers` first if you want to see exactly what your backend has configured.
 

@@ -50,7 +50,7 @@ def enhance(
     """
     Enhance raw PDF-extracted Markdown with structured elements.
 
-    Works with output from any parser: Marker, MinerU, Docling,
+    Works with output from any parser: Marker, PaddleOCR-VL, Docling,
     LlamaParse, PyMuPDF4LLM, and similar tools.
 
     Args:

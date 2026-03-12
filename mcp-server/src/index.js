@@ -11,6 +11,7 @@ const DEFAULT_API_URL = 'http://localhost:8000';
 const API_BASE_URL = normalizeApiBaseUrl(process.env.PAPERFLOW_API_URL || DEFAULT_API_URL);
 const MCP_EMAIL = 'mcp@paperflow.local';
 const USER_EMAIL = (process.env.PAPERFLOW_EMAIL || MCP_EMAIL).trim().toLowerCase();
+const MARKER_API_KEY = (process.env.PAPERFLOW_MARKER_API_KEY || '').trim();
 const POLL_INTERVAL = 3_000;
 const DEFAULT_TIMEOUT = 360_000;
 const parsedTimeout = Number.parseInt(process.env.PAPERFLOW_TIMEOUT_MS || '', 10);
@@ -63,7 +64,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'string',
             description:
               'Optional parser choice. Use "auto" (default), "best", "local", "fast", ' +
-              'or an explicit parser id such as "pymupdf", "marker_api", "marker_local", or "mineru".',
+              'or an explicit parser id such as "pymupdf", "paddleocr_vl", "marker_api", or "marker_local".',
           },
           response_mode: {
             type: 'string',
@@ -233,6 +234,9 @@ async function handleConvertPdf(args) {
     form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), filename);
     form.append('email', USER_EMAIL);
     form.append('parser', selectedParser.id);
+    if (selectedParser.id === 'marker_api' && MARKER_API_KEY) {
+      form.append('marker_api_key', MARKER_API_KEY);
+    }
 
     const submitRes = await fetch(`${API_BASE_URL}/api/submit`, {
       method: 'POST',
@@ -398,8 +402,9 @@ async function handleListParsers() {
         '',
         'Recommended fixes:',
         '1. Install PyMuPDF locally for the easiest free path.',
-        '2. Or add DATALAB_API_KEY for Marker API.',
-        '3. Or install marker_single / mineru for self-hosted parsers.',
+        '2. Or set PAPERFLOW_MARKER_API_KEY for Marker API through MCP.',
+        '3. Or install paddleocr for PaddleOCR-VL local AI parsing.',
+        '4. Or install marker_single for self-hosted Marker.',
       ].join('\n')
     );
   }
@@ -411,11 +416,15 @@ async function handleListParsers() {
   ];
 
   for (const parser of parsers) {
+    const usable = isParserUsableForMcp(parser);
     lines.push(
-      `- ${parser.label} [${parser.id}] - ${parser.configured ? 'configured' : 'not configured'}`
+      `- ${parser.label} [${parser.id}] - ${usable ? 'ready for MCP' : parser.configured ? 'configured but not ready for MCP' : 'not configured'}`
     );
     lines.push(`  Speed/quality: ${parser.speed} / ${parser.quality}`);
     lines.push(`  Setup: ${parser.setup}`);
+    if (parser.requires_user_key && !MARKER_API_KEY) {
+      lines.push('  MCP note: requires PAPERFLOW_MARKER_API_KEY in the MCP server environment.');
+    }
     if (parser.default) {
       lines.push('  Default backend parser: yes');
     }
@@ -424,9 +433,9 @@ async function handleListParsers() {
   lines.push('');
   lines.push('MCP parser shortcuts:');
   lines.push('- auto: best available quality with minimal user setup');
-  lines.push('- best: prefer marker_local -> marker_api -> mineru -> pymupdf');
-  lines.push('- local: prefer marker_local -> pymupdf -> mineru');
-  lines.push('- fast: prefer pymupdf -> marker_local -> mineru -> marker_api');
+  lines.push('- best: prefer marker_local -> marker_api -> paddleocr_vl -> pymupdf');
+  lines.push('- local: prefer marker_local -> paddleocr_vl -> pymupdf');
+  lines.push('- fast: prefer pymupdf -> marker_local -> paddleocr_vl -> marker_api');
 
   return text(lines.join('\n'));
 }
@@ -620,23 +629,24 @@ async function fetchParserCatalog({ forceRefresh = false } = {}) {
 async function resolveParserSelection(preference) {
   const parsers = await fetchParserCatalog();
   const configured = parsers.filter((parser) => parser && parser.configured);
+  const usable = configured.filter((parser) => isParserUsableForMcp(parser));
 
-  if (!configured.length) {
+  if (!usable.length) {
     throw new Error(
       'No PaperFlow parsers are configured on the backend. Install PyMuPDF locally, ' +
-      'or add DATALAB_API_KEY, or install marker_single / mineru.'
+      'or set PAPERFLOW_MARKER_API_KEY, or install paddleocr / marker_single.'
     );
   }
 
-  const explicit = configured.find((parser) => parser.id === preference);
+  const explicit = usable.find((parser) => parser.id === preference);
   if (explicit) {
     return explicit;
   }
 
   const knownButUnavailable = parsers.find((parser) => parser.id === preference);
-  if (knownButUnavailable && !knownButUnavailable.configured) {
+  if (knownButUnavailable && !isParserUsableForMcp(knownButUnavailable)) {
     throw new Error(
-      `Parser "${preference}" is known but not configured on this backend. ${knownButUnavailable.setup}`
+      `Parser "${preference}" is known but not ready for MCP. ${parserUnavailableReason(knownButUnavailable)}`
     );
   }
 
@@ -649,26 +659,46 @@ async function resolveParserSelection(preference) {
 
   const ranking = getParserRanking(preference || 'auto');
   for (const parserId of ranking) {
-    const match = configured.find((parser) => parser.id === parserId);
+    const match = usable.find((parser) => parser.id === parserId);
     if (match) {
       return match;
     }
   }
 
-  return configured[0];
+  return usable[0];
 }
 
 function getParserRanking(preference) {
   if (preference === 'local') {
-    return ['marker_local', 'pymupdf', 'mineru', 'marker_api'];
+    return ['marker_local', 'paddleocr_vl', 'pymupdf', 'marker_api'];
   }
   if (preference === 'fast') {
-    return ['pymupdf', 'marker_local', 'mineru', 'marker_api'];
+    return ['pymupdf', 'marker_local', 'paddleocr_vl', 'marker_api'];
   }
   if (preference === 'best') {
-    return ['marker_local', 'marker_api', 'mineru', 'pymupdf'];
+    return ['marker_local', 'marker_api', 'paddleocr_vl', 'pymupdf'];
   }
-  return ['marker_local', 'marker_api', 'pymupdf', 'mineru'];
+  return ['marker_local', 'marker_api', 'paddleocr_vl', 'pymupdf'];
+}
+
+function isParserUsableForMcp(parser) {
+  if (!parser || !parser.configured) {
+    return false;
+  }
+  if (parser.requires_user_key && !MARKER_API_KEY) {
+    return false;
+  }
+  return true;
+}
+
+function parserUnavailableReason(parser) {
+  if (!parser.configured) {
+    return parser.setup || 'It is not configured on the backend.';
+  }
+  if (parser.requires_user_key && !MARKER_API_KEY) {
+    return 'Set PAPERFLOW_MARKER_API_KEY in the MCP server environment so the backend receives your personal Datalab key.';
+  }
+  return parser.setup || 'It is not available.';
 }
 
 function buildCondensedOutput({
