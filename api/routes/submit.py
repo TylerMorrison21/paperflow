@@ -411,8 +411,15 @@ def get_parser_options():
     return {"parsers": list_parsers()}
 
 
-def _validate_parser(parser: str) -> dict:
+def _normalize_parser(parser: str) -> str:
     parser = (parser or "pymupdf").strip().lower()
+    if parser == "mineru":
+        return "paddleocr_vl"
+    return parser
+
+
+def _validate_parser(parser: str) -> dict:
+    parser = _normalize_parser(parser)
     parser_options = {row["id"]: row for row in list_parsers()}
     selected_parser = parser_options.get(parser)
     if not selected_parser:
@@ -426,6 +433,17 @@ def _validate_parser(parser: str) -> dict:
             ),
         )
     return selected_parser
+
+
+def _normalize_marker_api_key(parser: str, marker_api_key: str) -> str:
+    parser = _normalize_parser(parser)
+    api_key = (marker_api_key or "").strip()
+    if parser == "marker_api" and not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Marker API requires your own Datalab API key in this Web UI.",
+        )
+    return api_key
 
 
 async def _read_and_validate_pdf(file: UploadFile) -> tuple[bytes, int]:
@@ -514,6 +532,7 @@ async def process_job(
     original_filename: str,
     file_hash: str,
     parser_name: str,
+    marker_api_key: str = "",
 ):
     """
     Background task: process PDF and email result.
@@ -561,7 +580,7 @@ async def process_job(
 
         # 2. Call selected parser
         logger.info(f"Job {job_id}: Calling parser={parser_name}")
-        result = await parse_pdf_with_parser(pdf_bytes, parser_name)
+        result = await parse_pdf_with_parser(pdf_bytes, parser_name, marker_api_key=marker_api_key)
         raw_markdown = result["markdown"]
         images = result["images"]
         metadata = result["metadata"]
@@ -637,6 +656,7 @@ async def process_batch(
     batch_id: str,
     files_payload: list[dict],
     parser_name: str,
+    marker_api_key: str = "",
 ) -> None:
     batch_dir = _batch_dir(batch_id)
     jobs_dir = batch_dir / "jobs"
@@ -677,6 +697,7 @@ async def process_batch(
             item["filename"],
             item["file_hash"],
             parser_name,
+            marker_api_key,
         )
 
         paper_md = job_dir / "paper.md"
@@ -724,12 +745,14 @@ async def submit_pdf(
     file: UploadFile = File(...),
     email: str = Form("mcp@paperflow.local"),
     parser: str = Form("pymupdf"),
+    marker_api_key: str = Form(""),
 ):
     """
     Accept a PDF, start async processing, and return a job ID immediately.
     Email is optional for self-hosted/local use.
     """
-    parser = (parser or "pymupdf").strip().lower()
+    parser = _normalize_parser(parser)
+    marker_api_key = _normalize_marker_api_key(parser, marker_api_key)
 
     _validate_parser(parser)
 
@@ -797,6 +820,7 @@ async def submit_pdf(
         file.filename,
         file_hash,
         parser,
+        marker_api_key,
     )
 
     return SubmitResponse(
@@ -810,8 +834,10 @@ async def submit_batch(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     parser: str = Form("pymupdf"),
+    marker_api_key: str = Form(""),
 ):
-    parser = (parser or "pymupdf").strip().lower()
+    parser = _normalize_parser(parser)
+    marker_api_key = _normalize_marker_api_key(parser, marker_api_key)
     _validate_parser(parser)
 
     if len(files) < 2:
@@ -854,7 +880,7 @@ async def submit_batch(
         },
     )
 
-    background_tasks.add_task(process_batch, batch_id, payload_items, parser)
+    background_tasks.add_task(process_batch, batch_id, payload_items, parser, marker_api_key)
 
     return BatchSubmitResponse(
         batch_id=batch_id,

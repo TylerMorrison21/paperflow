@@ -6,11 +6,11 @@
   <title>PaperFlow - Open Source PDF to Markdown Post-Processing Engine</title>
   <meta
     name="description"
-    content="Turn academic PDFs into structured Markdown with footnotes, LaTeX equations, figure links, and YAML metadata. Self-hosted Web UI, supports Marker, MinerU, PyMuPDF. Free and open source."
+    content="Turn academic PDFs into structured Markdown with footnotes, LaTeX equations, figure links, and YAML metadata. Self-hosted Web UI, supports Marker, PaddleOCR-VL, PyMuPDF. Free and open source."
   />
   <meta
     name="keywords"
-    content="pdf to markdown, academic pdf, latex, obsidian, footnotes, marker, mineru, open source, self-hosted, document processing, rag, knowledge management"
+    content="pdf to markdown, academic pdf, latex, obsidian, footnotes, marker, paddleocr-vl, open source, self-hosted, document processing, rag, knowledge management"
   />
   <meta
     property="og:title"
@@ -644,7 +644,7 @@
           </div>
           <div class="mini-card">
             <h3>Use it with</h3>
-            <p>Marker API, Marker local, MinerU, Docling, LlamaParse, PyMuPDF4LLM, or your own extractor.</p>
+            <p>Marker API, Marker local, PaddleOCR-VL, Docling, LlamaParse, PyMuPDF4LLM, or your own extractor.</p>
           </div>
         </div>
       </div>
@@ -668,7 +668,7 @@
 |     (*) PyMuPDF (free, local, fastest)      |
 |     ( ) Marker API (best quality)           |
 |     ( ) Marker self-hosted                  |
-|     ( ) MinerU                              |
+|     ( ) PaddleOCR-VL-0.9B                  |
 |                                             |
 |  2. Drop PDF here                           |
 |     +-------------------------------+       |
@@ -685,7 +685,7 @@
         <div class="feature-pill-row">
           <div class="feature-pill">100% local - files never leave your machine</div>
           <div class="feature-pill">Batch processing - convert multiple PDFs at once</div>
-          <div class="feature-pill">Swap parsers - PyMuPDF, Marker, MinerU, or your own</div>
+          <div class="feature-pill">Swap parsers - PyMuPDF, Marker, PaddleOCR-VL, or your own</div>
         </div>
       </div>
     </section>
@@ -908,9 +908,9 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
               <td>Uses the official marker_single CLI locally</td>
             </tr>
             <tr>
-              <td>MinerU</td>
+              <td>PaddleOCR-VL-0.9B</td>
               <td>Partial</td>
-              <td>Uses the official mineru CLI locally</td>
+              <td>Uses the official paddleocr doc_parser CLI locally on CPU</td>
             </tr>
             <tr>
               <td>Docling</td>
@@ -992,7 +992,12 @@ curl http://localhost:8000/api/jobs/&lt;job_id&gt;/package -o paperflow.zip</cod
       </div>
 
       <div class="cta-row" style="margin-top: 22px; margin-bottom: 10px;">
-        <a class="cta primary" href="mailto:support@paperflowing.com">Contact us - support@paperflowing.com</a>
+        <a
+          class="cta primary"
+          href="https://mail.google.com/mail/?view=cm&fs=1&to=support@paperflowing.com"
+          target="_blank"
+          rel="noopener"
+        >Contact us - support@paperflowing.com</a>
       </div>
 
       <p class="comparison-note">

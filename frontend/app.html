@@ -275,6 +275,145 @@
       margin-top: 10px;
     }
 
+    .parser-detail {
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 16px;
+    }
+
+    .parser-detail h3 {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .parser-detail ul {
+      color: var(--muted);
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .parser-detail li {
+      margin: 0 0 6px;
+    }
+
+    .parser-detail-lead {
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .parser-best-for {
+      color: var(--muted);
+    }
+
+    .parser-facts {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .parser-fact {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .parser-fact-label {
+      color: var(--accent-strong);
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .parser-fact-value {
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+
+    .parser-positioning {
+      border-left: 3px solid rgba(16, 185, 129, 0.45);
+      color: var(--text);
+      margin-top: 2px;
+      padding-left: 12px;
+    }
+
+    .parser-commands {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .parser-command-label {
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin: 2px 0 0;
+    }
+
+    .parser-command {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 12px;
+      color: #cbf5e1;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      margin: 0;
+      overflow-x: auto;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .parser-ready {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .api-key-shell {
+      background: rgba(9, 13, 11, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      display: none;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 16px;
+    }
+
+    .api-key-shell.visible {
+      display: grid;
+    }
+
+    .api-key-label {
+      color: var(--text);
+      font-size: 0.94rem;
+      font-weight: 600;
+    }
+
+    .api-key-input {
+      background: #09100d;
+      border: 1px solid rgba(16, 185, 129, 0.24);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      padding: 12px 14px;
+      width: 100%;
+    }
+
+    .api-key-input::placeholder {
+      color: var(--muted);
+    }
+
     .dropzone {
       align-items: center;
       background: rgba(9, 13, 11, 0.92);
@@ -292,6 +431,12 @@
     .dropzone.dragging {
       background: rgba(16, 185, 129, 0.08);
       border-color: rgba(16, 185, 129, 0.8);
+    }
+
+    .dropzone.disabled {
+      border-color: rgba(251, 113, 133, 0.28);
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .dropzone strong {
@@ -466,28 +611,30 @@
         <div class="hero-actions">
           <a class="hero-link" href="https://github.com/TylerMorrison21/paperflow" target="_blank">&#11088; GitHub</a>
           <a class="hero-link secondary" href="/docs">API Docs</a>
-          <a class="hero-link secondary" href="mailto:support@paperflowing.com?subject=Enterprise%20deployment">Enterprise Deployment</a>
+          <a
+            class="hero-link secondary"
+            href="https://mail.google.com/mail/?view=cm&fs=1&to=support@paperflowing.com&su=Enterprise%20deployment"
+            target="_blank"
+            rel="noopener"
+          >Enterprise Deployment</a>
         </div>
       </div>
       <div class="hero-card">
-        <h3>Recommended defaults</h3>
-        <pre><code>Parser Options
-PyMuPDF (free, local)
-+-- No API key needed
-+-- Good for text-heavy PDFs
-`-- Footnotes & LaTeX normalization included
-Marker API (best quality)
-+-- Requires Datalab account ($25/mo free credits)
-+-- Best for academic papers, complex layouts
-`-- Superior table & equation extraction
-Self-hosted Marker / MinerU
-+-- Full data sovereignty
-+-- Your GPU, your network
-`-- Best for law firms, finance, healthcare</code></pre>
+        <h3>Quick decision guide</h3>
+        <pre><code>Quick selection guide
+Standard digital PDF?
++-- Yes -> PyMuPDF Local
+`-- No
+    +-- Need local AI for scans / formulas / layout recovery?
+    |   `-- PaddleOCR-VL-0.9B
+    +-- Cloud is acceptable and you want the easiest premium path?
+    |   `-- Marker API (Datalab.to)
+    `-- Need private infrastructure and enterprise control?
+        `-- Enterprise Marker Self-Hosted</code></pre>
         <div class="parser-badges" style="margin-top: 14px;">
-          <span class="parser-chip">Default: PyMuPDF</span>
-          <span class="parser-chip">Best quality: Marker API / Marker local</span>
-          <span class="parser-chip muted">MinerU: advanced local option</span>
+          <span class="parser-chip">Start with: PyMuPDF</span>
+          <span class="parser-chip">Best local quality: PaddleOCR-VL</span>
+          <span class="parser-chip muted">Enterprise privacy: Marker Self-Hosted</span>
         </div>
       </div>
     </section>
@@ -498,11 +645,25 @@ Self-hosted Marker / MinerU
           <div class="section-head">
             <div>
               <h2>1. Choose parser</h2>
-              <p>All parsers include PaperFlow post-processing: footnotes, LaTeX normalization, figure/table links, and YAML metadata. Parser choice affects extraction quality - post-processing is always the same.</p>
+              <p>Choose by document type, privacy requirements, and setup effort. Every option still gets the same PaperFlow post-processing: footnotes, LaTeX cleanup, figure links, and YAML metadata.</p>
             </div>
             <div class="status-badge" id="parser-badge">Loading parsers</div>
           </div>
           <div class="parser-grid" id="parser-grid"></div>
+          <div class="parser-detail" id="parser-detail">
+            <div class="parser-ready">
+              <h3 id="parser-detail-title">Select a parser</h3>
+              <div class="status-badge" id="parser-detail-badge">Waiting</div>
+            </div>
+            <p class="parser-detail-lead" id="parser-detail-headline">Choose a parser to see which workflow fits your documents.</p>
+            <p class="parser-best-for" id="parser-detail-best-for">Pick the option that matches your document type, privacy requirements, and setup tolerance.</p>
+            <div class="parser-facts" id="parser-detail-facts"></div>
+            <p class="parser-positioning" id="parser-detail-positioning"></p>
+            <p class="parser-note parser-setup" id="parser-detail-setup"></p>
+            <ul id="parser-detail-steps"></ul>
+            <p class="parser-command-label" id="parser-detail-commands-label" style="display: none;">Exact commands</p>
+            <div class="parser-commands" id="parser-detail-commands"></div>
+          </div>
         </section>
 
         <section class="panel">
@@ -512,6 +673,18 @@ Self-hosted Marker / MinerU
               <p>Your files never leave your machine. All processing happens locally (or via your configured API). Supports single and batch processing.</p>
             </div>
             <div class="hint">Single or batch PDF</div>
+          </div>
+          <div class="api-key-shell" id="marker-api-key-shell">
+            <label class="api-key-label" for="marker-api-key">Datalab API key</label>
+            <input
+              class="api-key-input"
+              id="marker-api-key"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="dl-... or your Datalab API key"
+            />
+            <p>Required only for <strong style="color: var(--text);">Marker API</strong>. PaperFlow will use your key for this run.</p>
           </div>
           <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose PDF file">
             <input id="file-input" type="file" accept="application/pdf,.pdf" multiple hidden />
@@ -562,7 +735,9 @@ Self-hosted Marker / MinerU
       <p style="color: var(--muted); font-size: 0.92rem; max-width: 60ch; margin: 0 auto;">
         <strong style="color: var(--text);">Need PaperFlow deployed in your organization?</strong><br>
         Private deployment on your servers &middot; Commercial API &middot; Custom document integrations<br>
-        <a href="mailto:support@paperflowing.com?subject=Enterprise%20inquiry" 
+        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=support@paperflowing.com&su=Enterprise%20inquiry" 
+           target="_blank"
+           rel="noopener"
            style="color: var(--accent-strong); text-decoration: none;">
            Contact us -&gt;
         </a>
@@ -587,6 +762,18 @@ Self-hosted Marker / MinerU
     const selectedFilesEl = document.getElementById("selected-files");
     const progressBar = document.getElementById("progress-bar");
     const batchList = document.getElementById("batch-list");
+    const markerApiKeyShell = document.getElementById("marker-api-key-shell");
+    const markerApiKeyInput = document.getElementById("marker-api-key");
+    const parserDetailTitle = document.getElementById("parser-detail-title");
+    const parserDetailBadge = document.getElementById("parser-detail-badge");
+    const parserDetailHeadline = document.getElementById("parser-detail-headline");
+    const parserDetailBestFor = document.getElementById("parser-detail-best-for");
+    const parserDetailFacts = document.getElementById("parser-detail-facts");
+    const parserDetailPositioning = document.getElementById("parser-detail-positioning");
+    const parserDetailSetup = document.getElementById("parser-detail-setup");
+    const parserDetailSteps = document.getElementById("parser-detail-steps");
+    const parserDetailCommandsLabel = document.getElementById("parser-detail-commands-label");
+    const parserDetailCommands = document.getElementById("parser-detail-commands");
 
     let selectedParser = null;
     let parserCatalog = new Map();
@@ -595,6 +782,7 @@ Self-hosted Marker / MinerU
     let activeBatchId = null;
     let activeParserLabel = "";
     let pollTimer = null;
+    let parserRefreshTimer = null;
 
     function setStatus(label, text, mode = "") {
       jobStatus.textContent = label;
@@ -690,20 +878,116 @@ Self-hosted Marker / MinerU
     }
 
     function updateConvertState() {
-      convertButton.disabled = !(selectedParser && selectedFiles.length === 1);
-      batchButton.disabled = !(selectedParser && selectedFiles.length > 1);
+      const parserReady = isSelectedParserReady();
+      convertButton.disabled = !(selectedParser && selectedFiles.length === 1 && parserReady);
+      batchButton.disabled = !(selectedParser && selectedFiles.length > 1 && parserReady);
+      dropzone.classList.toggle("disabled", !parserReady);
+      dropzone.setAttribute("aria-disabled", parserReady ? "false" : "true");
+      fileInput.disabled = !parserReady;
+    }
+
+    function getSelectedParserRecord() {
+      return parserCatalog.get(selectedParser) || null;
+    }
+
+    function isSelectedParserReady() {
+      const parser = getSelectedParserRecord();
+      if (!parser || !parser.configured) {
+        return false;
+      }
+      if (parser.requires_user_key && !markerApiKeyInput.value.trim()) {
+        return false;
+      }
+      return true;
+    }
+
+    function renderParserDetails() {
+      const parser = getSelectedParserRecord();
+      if (!parser) {
+        parserDetailTitle.textContent = "Select a parser";
+        parserDetailBadge.textContent = "Waiting";
+        parserDetailHeadline.textContent = "Choose a parser to see which workflow fits your documents.";
+        parserDetailBestFor.textContent = "Pick the option that matches your document type, privacy requirements, and setup tolerance.";
+        parserDetailFacts.innerHTML = "";
+        parserDetailPositioning.textContent = "";
+        parserDetailSetup.textContent = "";
+        parserDetailSteps.innerHTML = "";
+        parserDetailCommandsLabel.style.display = "none";
+        parserDetailCommands.innerHTML = "";
+        return;
+      }
+
+      const ready = isSelectedParserReady();
+      parserDetailTitle.textContent = parser.label;
+      parserDetailBadge.textContent = ready ? "Ready" : "Setup required";
+      parserDetailHeadline.textContent = parser.headline || parser.description;
+      parserDetailBestFor.textContent = parser.best_for || parser.description;
+      parserDetailFacts.innerHTML = "";
+      parserDetailPositioning.textContent = parser.positioning || "";
+      parserDetailSetup.innerHTML = `<strong>${parser.setup}</strong>`;
+      parserDetailSteps.innerHTML = "";
+      parserDetailCommands.innerHTML = "";
+      parserDetailCommandsLabel.style.display = (parser.commands || []).length ? "block" : "none";
+
+      for (const fact of parser.facts || []) {
+        const card = document.createElement("div");
+        card.className = "parser-fact";
+        card.innerHTML = `
+          <span class="parser-fact-label">${fact.label}</span>
+          <div class="parser-fact-value">${fact.value}</div>
+        `;
+        parserDetailFacts.appendChild(card);
+      }
+
+      for (const step of parser.instructions || []) {
+        const item = document.createElement("li");
+        item.textContent = step;
+        parserDetailSteps.appendChild(item);
+      }
+
+      if (parser.requires_user_key && !markerApiKeyInput.value.trim()) {
+        const item = document.createElement("li");
+        item.textContent = "Upload is locked until you enter your own Datalab API key below.";
+        parserDetailSteps.appendChild(item);
+      } else if (!parser.configured) {
+        const item = document.createElement("li");
+        item.textContent = "Upload is locked until PaperFlow detects that this parser is configured.";
+        parserDetailSteps.appendChild(item);
+      }
+
+      for (const command of parser.commands || []) {
+        const block = document.createElement("pre");
+        block.className = "parser-command";
+        block.textContent = command;
+        parserDetailCommands.appendChild(block);
+      }
+    }
+
+    function syncParserRequirements() {
+      const requiresUserKey = getSelectedParserRecord()?.requires_user_key;
+      markerApiKeyShell.classList.toggle("visible", Boolean(requiresUserKey));
+      renderParserDetails();
+      updateConvertState();
     }
 
     function pickParser(parserId) {
       selectedParser = parserId;
       document.querySelectorAll(".parser-option").forEach((card) => {
-        card.classList.toggle("selected", card.dataset.parserId === parserId);
+        const isSelected = card.dataset.parserId === parserId;
+        card.classList.toggle("selected", isSelected);
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = isSelected;
+        }
       });
-      updateConvertState();
+      syncParserRequirements();
     }
 
-    async function loadParsers() {
-      parserBadge.textContent = "Loading";
+    async function loadParsers({ preserveSelection = true, showLoading = true } = {}) {
+      const previousSelection = preserveSelection ? selectedParser : null;
+      if (showLoading) {
+        parserBadge.textContent = "Loading";
+      }
       const response = await fetch("/api/parsers");
       const data = await response.json();
       const parsers = data.parsers || [];
@@ -720,35 +1004,39 @@ Self-hosted Marker / MinerU
         label.dataset.parserId = parser.id;
 
         label.innerHTML = `
-          <input type="radio" name="parser" value="${parser.id}" ${parser.default ? "checked" : ""} ${parser.configured ? "" : "disabled"} />
+          <input type="radio" name="parser" value="${parser.id}" ${parser.default ? "checked" : ""} />
           <div class="parser-row">
             <div class="parser-title">${parser.label}</div>
             <div class="parser-meta">${parser.speed} / ${parser.quality}</div>
           </div>
-          <p class="parser-note">${parser.description}</p>
+          <p class="parser-note"><strong>${parser.headline || parser.description}</strong></p>
+          <p class="parser-note">${parser.best_for || parser.description}</p>
           <div class="parser-badges">
             ${parser.default ? '<span class="parser-chip">Default</span>' : ""}
             ${parser.recommended ? '<span class="parser-chip">Recommended</span>' : ""}
             <span class="parser-chip ${parser.configured ? "" : "muted"}">${parser.configured ? "Configured" : "Not configured"}</span>
+            ${parser.requires_user_key ? '<span class="parser-chip">BYOK</span>' : ""}
           </div>
           <p class="parser-note parser-setup"><strong>${parser.setup}</strong></p>
         `;
 
-        if (parser.configured) {
-          label.addEventListener("click", () => pickParser(parser.id));
-        }
+        label.addEventListener("click", () => pickParser(parser.id));
 
         parserGrid.appendChild(label);
       }
 
+      const preservedParser = previousSelection && parserCatalog.has(previousSelection)
+        ? parserCatalog.get(previousSelection)
+        : null;
       const defaultParser = parsers.find((parser) => parser.default && parser.configured) || parsers.find((parser) => parser.configured);
-      if (defaultParser) {
-        pickParser(defaultParser.id);
+      const parserToSelect = preservedParser?.id || defaultParser?.id || parsers[0]?.id || null;
+      if (parserToSelect) {
+        pickParser(parserToSelect);
         const configuredCount = parsers.filter((parser) => parser.configured).length;
         parserBadge.textContent = `${configuredCount}/${parsers.length} ready`;
       } else {
         parserBadge.textContent = "No parser configured";
-        setStatus("Blocked", "No parser is configured. Install PyMuPDF locally or add DATALAB_API_KEY for Marker API.", "error");
+        setStatus("Blocked", "No parser is configured. Install PyMuPDF locally, add your Datalab key for Marker API, or install PaddleOCR-VL locally.", "error");
       }
     }
 
@@ -764,6 +1052,11 @@ Self-hosted Marker / MinerU
 
     function handleFiles(files) {
       const normalized = Array.from(files || []).filter(Boolean);
+      if (normalized.length && !isSelectedParserReady()) {
+        setStatus("Setup required", "Finish the selected parser setup before uploading PDFs.", "error");
+        return;
+      }
+
       selectedFiles = normalized;
       renderSelectedFiles();
 
@@ -874,6 +1167,11 @@ Self-hosted Marker / MinerU
       if (selectedFiles.length !== 1 || !selectedParser) {
         return;
       }
+      if (selectedParser === "marker_api" && !markerApiKeyInput.value.trim()) {
+        setStatus("Missing key", "Enter your Datalab API key to use Marker API.", "error");
+        markerApiKeyInput.focus();
+        return;
+      }
 
       if (pollTimer) {
         clearInterval(pollTimer);
@@ -891,6 +1189,9 @@ Self-hosted Marker / MinerU
       const formData = new FormData();
       formData.append("file", selectedFiles[0]);
       formData.append("parser", selectedParser);
+      if (selectedParser === "marker_api") {
+        formData.append("marker_api_key", markerApiKeyInput.value.trim());
+      }
 
       let response;
       try {
@@ -926,6 +1227,11 @@ Self-hosted Marker / MinerU
       if (selectedFiles.length < 2 || !selectedParser) {
         return;
       }
+      if (selectedParser === "marker_api" && !markerApiKeyInput.value.trim()) {
+        setStatus("Missing key", "Enter your Datalab API key to use Marker API.", "error");
+        markerApiKeyInput.focus();
+        return;
+      }
 
       if (pollTimer) {
         clearInterval(pollTimer);
@@ -944,6 +1250,9 @@ Self-hosted Marker / MinerU
         formData.append("files", file);
       }
       formData.append("parser", selectedParser);
+      if (selectedParser === "marker_api") {
+        formData.append("marker_api_key", markerApiKeyInput.value.trim());
+      }
 
       let response;
       try {
@@ -975,10 +1284,20 @@ Self-hosted Marker / MinerU
       pollBatch(activeBatchId);
     }
 
-    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("click", () => {
+      if (!isSelectedParserReady()) {
+        setStatus("Setup required", "Finish the selected parser setup before uploading PDFs.", "error");
+        return;
+      }
+      fileInput.click();
+    });
     dropzone.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
+        if (!isSelectedParserReady()) {
+          setStatus("Setup required", "Finish the selected parser setup before uploading PDFs.", "error");
+          return;
+        }
         fileInput.click();
       }
     });
@@ -999,9 +1318,14 @@ Self-hosted Marker / MinerU
     });
 
     dropzone.addEventListener("drop", (event) => {
+      if (!isSelectedParserReady()) {
+        setStatus("Setup required", "Finish the selected parser setup before uploading PDFs.", "error");
+        return;
+      }
       handleFiles(event.dataTransfer.files);
     });
 
+    markerApiKeyInput.addEventListener("input", syncParserRequirements);
     convertButton.addEventListener("click", submitFile);
     batchButton.addEventListener("click", submitBatch);
     downloadMarkdown.addEventListener("click", async (event) => {
@@ -1029,10 +1353,13 @@ Self-hosted Marker / MinerU
       setStatus("Idle", "Choose a parser, drop one or more PDFs, then start a run.");
     });
 
-    loadParsers().catch((error) => {
+    loadParsers({ preserveSelection: false }).catch((error) => {
       parserBadge.textContent = "Load failed";
       setStatus("Error", `Failed to load parser options: ${error.message}`, "error");
     });
+    parserRefreshTimer = setInterval(() => {
+      loadParsers({ showLoading: false }).catch(() => {});
+    }, 5000);
   </script>
 </body>
 </html>

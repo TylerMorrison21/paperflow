@@ -22,7 +22,12 @@ SCANNED_PDF_ERROR = (
 )
 
 async def parse_pdf(pdf_bytes: bytes) -> dict:
-    if not DATALAB_API_KEY:
+    return await parse_pdf_with_api_key(pdf_bytes, api_key=DATALAB_API_KEY)
+
+
+async def parse_pdf_with_api_key(pdf_bytes: bytes, api_key: str | None) -> dict:
+    api_key = (api_key or "").strip()
+    if not api_key:
         raise EnvironmentError("DATALAB_API_KEY is not set")
 
     logger.info(f"Starting PDF parse, size: {len(pdf_bytes)} bytes")
@@ -30,18 +35,18 @@ async def parse_pdf(pdf_bytes: bytes) -> dict:
     # If the PDF likely has no text layer, skip directly to OCR.
     if _likely_no_text_layer(pdf_bytes):
         logger.info("No text layer detected in sampled pages; running OCR-first")
-        ocr_result = await _parse_pdf_once(pdf_bytes, force_ocr=True)
+        ocr_result = await _parse_pdf_once(pdf_bytes, force_ocr=True, api_key=api_key)
         if _looks_like_scanned_output(ocr_result) or not (ocr_result.get("markdown") or "").strip():
             raise RuntimeError(SCANNED_PDF_ERROR)
         return ocr_result
 
     # Fast pass first for text-layer PDFs.
-    result = await _parse_pdf_once(pdf_bytes, force_ocr=False)
+    result = await _parse_pdf_once(pdf_bytes, force_ocr=False, api_key=api_key)
 
     # Retry with OCR only when the response explicitly indicates image-only content.
     if _looks_like_scanned_output(result):
         logger.info("Detected scan/image-only output; retrying Marker with force_ocr=true")
-        ocr_result = await _parse_pdf_once(pdf_bytes, force_ocr=True)
+        ocr_result = await _parse_pdf_once(pdf_bytes, force_ocr=True, api_key=api_key)
         if _looks_like_scanned_output(ocr_result) or not (ocr_result.get("markdown") or "").strip():
             raise RuntimeError(SCANNED_PDF_ERROR)
         return ocr_result
@@ -49,13 +54,13 @@ async def parse_pdf(pdf_bytes: bytes) -> dict:
     return result
 
 
-async def _parse_pdf_once(pdf_bytes: bytes, force_ocr: bool) -> dict:
+async def _parse_pdf_once(pdf_bytes: bytes, force_ocr: bool, api_key: str) -> dict:
     mode = "OCR" if force_ocr else "non-OCR"
     async with httpx.AsyncClient(timeout=60) as client:
         logger.info(f"Uploading PDF to Marker API ({mode})...")
         resp = await client.post(
             MARKER_API_URL,
-            headers={"X-API-Key": DATALAB_API_KEY},
+            headers={"X-API-Key": api_key},
             files={"file": ("upload.pdf", pdf_bytes, "application/pdf")},
             data={
                 "output_format": "markdown",
@@ -78,7 +83,7 @@ async def _parse_pdf_once(pdf_bytes: bytes, force_ocr: bool) -> dict:
         while asyncio.get_event_loop().time() < deadline:
             await asyncio.sleep(POLL_INTERVAL)
             poll_count += 1
-            r = await client.get(check_url, headers={"X-API-Key": DATALAB_API_KEY})
+            r = await client.get(check_url, headers={"X-API-Key": api_key})
             r.raise_for_status()
             data = r.json()
             status = data.get("status", "")

@@ -5,11 +5,17 @@ import base64
 import logging
 import shlex
 import shutil
+import subprocess
+import threading
+import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
+_PROBE_CACHE: dict[tuple[str, tuple[str, ...], str], tuple[float, bool]] = {}
+_PROBE_IN_FLIGHT: set[tuple[str, tuple[str, ...], str]] = set()
+_PROBE_LOCK = threading.Lock()
 
 
 def command_available(command: str) -> bool:
@@ -20,6 +26,126 @@ def command_available(command: str) -> bool:
         return True
 
     return shutil.which(command) is not None
+
+
+def command_invocation_available(
+    command: str,
+    args: list[str],
+    *,
+    timeout_seconds: int = 4,
+    expected_text: str = "",
+    cache_ttl_seconds: float = 5.0,
+    blocking: bool = True,
+) -> bool:
+    cache_key = (command, tuple(args), expected_text.casefold())
+    now = time.monotonic()
+    cached = _PROBE_CACHE.get(cache_key)
+    if cached and now - cached[0] < cache_ttl_seconds:
+        return cached[1]
+
+    if not blocking:
+        _refresh_probe_in_background(
+            cache_key,
+            command,
+            args,
+            timeout_seconds=timeout_seconds,
+            expected_text=expected_text,
+        )
+        return cached[1] if cached else False
+
+    return _run_probe(
+        cache_key,
+        command,
+        args,
+        timeout_seconds=timeout_seconds,
+        expected_text=expected_text,
+    )
+
+
+def _refresh_probe_in_background(
+    cache_key: tuple[str, tuple[str, ...], str],
+    command: str,
+    args: list[str],
+    *,
+    timeout_seconds: int,
+    expected_text: str,
+) -> None:
+    with _PROBE_LOCK:
+        if cache_key in _PROBE_IN_FLIGHT:
+            return
+        _PROBE_IN_FLIGHT.add(cache_key)
+
+    thread = threading.Thread(
+        target=_probe_in_background,
+        args=(cache_key, command, args),
+        kwargs={
+            "timeout_seconds": timeout_seconds,
+            "expected_text": expected_text,
+        },
+        daemon=True,
+    )
+    thread.start()
+
+
+def _probe_in_background(
+    cache_key: tuple[str, tuple[str, ...], str],
+    command: str,
+    args: list[str],
+    *,
+    timeout_seconds: int,
+    expected_text: str,
+) -> None:
+    try:
+        _run_probe(
+            cache_key,
+            command,
+            args,
+            timeout_seconds=timeout_seconds,
+            expected_text=expected_text,
+        )
+    finally:
+        with _PROBE_LOCK:
+            _PROBE_IN_FLIGHT.discard(cache_key)
+
+
+def _run_probe(
+    cache_key: tuple[str, tuple[str, ...], str],
+    command: str,
+    args: list[str],
+    *,
+    timeout_seconds: int,
+    expected_text: str,
+) -> bool:
+    now = time.monotonic()
+
+    if not command_available(command):
+        _PROBE_CACHE[cache_key] = (now, False)
+        return False
+
+    try:
+        completed = subprocess.run(
+            [command, *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        _PROBE_CACHE[cache_key] = (now, False)
+        return False
+
+    if completed.returncode != 0:
+        _PROBE_CACHE[cache_key] = (now, False)
+        return False
+
+    if not expected_text:
+        _PROBE_CACHE[cache_key] = (now, True)
+        return True
+
+    combined = f"{completed.stdout}\n{completed.stderr}".casefold()
+    result = expected_text.casefold() in combined
+    _PROBE_CACHE[cache_key] = (now, result)
+    return result
 
 
 def split_extra_args(raw: str) -> list[str]:

@@ -62,6 +62,37 @@ References
         self.assertIn('title: "Untitled Paper"', result)
         self.assertIn("[^1]: Generic Source.", result)
 
+    def test_convert_to_footnotes_accepts_references_and_notes_heading(self) -> None:
+        raw = """Body cites [1].
+
+## References and Notes
+
+[1] Source One.
+"""
+
+        result = convert_to_footnotes(raw)
+
+        self.assertIn("Body cites [^1].", result)
+        self.assertIn("## References", result)
+        self.assertIn("[^1]: Source One.", result)
+
+    def test_convert_to_footnotes_accepts_numbered_reference_entries(self) -> None:
+        raw = """Body cites [1] and [2].
+
+Appendix text.
+
+1. Source One.
+2) Source Two.
+3. Source Three.
+"""
+
+        result = convert_to_footnotes(raw)
+
+        self.assertIn("Body cites [^1] and [^2].", result)
+        self.assertIn("[^1]: Source One.", result)
+        self.assertIn("[^2]: Source Two.", result)
+        self.assertIn("[^3]: Source Three.", result)
+
 
 if __name__ == "__main__":
     unittest.main()

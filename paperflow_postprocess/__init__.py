@@ -24,11 +24,11 @@ __version__ = "0.1.1"
 logger = logging.getLogger(__name__)
 
 REFERENCE_SECTION_PATTERN = re.compile(
-    r"^(?:#{1,6}\s*)?(?:\*\*)?(?:References|Bibliography|Works Cited|Reference List)(?:\*\*)?\s*$",
+    r"^(?:#{1,6}\s*)?(?:\*\*)?(?:References(?:\s+and\s+Notes)?|Bibliography|Works Cited|Reference List|Notes and References)(?:\*\*)?\s*$",
     re.MULTILINE | re.IGNORECASE,
 )
 HEADINGLESS_REFERENCE_PATTERN = re.compile(
-    r"^(?:-\s*)?(?:\[\[#Reference 1\]\]|\[1\]\s+\S)",
+    r"^(?:-\s*)?(?:\[\[#Reference\s+1\]\]|\[1\]\s+\S|1[\.\)]\s+\S)",
     re.MULTILINE,
 )
 MULTI_CITATION_PATTERN = re.compile(
@@ -157,6 +157,8 @@ def _parse_ref_entries(ref_text: str) -> dict[str, str]:
 
     for line in lines:
         match = re.match(r"^\s*-?\s*\[(\d+)\]\s*(.*)", line)
+        if not match:
+            match = re.match(r"^\s*(\d{1,3})[\.\)]\s+(.*)", line)
         if match:
             if current_num is not None:
                 entries[current_num] = " ".join(current_text).strip()
@@ -171,6 +173,41 @@ def _parse_ref_entries(ref_text: str) -> dict[str, str]:
     return entries
 
 
+def _looks_like_reference_start(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    return bool(
+        re.match(r"^(?:-\s*)?\[(?:\d{1,3})\]\s+\S", stripped)
+        or re.match(r"^\d{1,3}[\.\)]\s+\S", stripped)
+        or re.match(r"^\[\[#Reference\s+\d+\]\]", stripped)
+    )
+
+
+def _find_headingless_reference_start(md: str) -> int | None:
+    lines = md.splitlines()
+    if not lines:
+        return None
+
+    start_index = max(0, int(len(lines) * 0.6))
+    for index in range(start_index, len(lines)):
+        if not _looks_like_reference_start(lines[index]):
+            continue
+
+        hits = 0
+        for candidate in lines[index : min(len(lines), index + 18)]:
+            if _looks_like_reference_start(candidate):
+                hits += 1
+
+        if hits >= 3:
+            return sum(len(line) + 1 for line in lines[:index])
+
+    match = HEADINGLESS_REFERENCE_PATTERN.search(md)
+    if match:
+        return match.start()
+    return None
+
+
 def convert_to_footnotes(md: str) -> str:
     """Convert bracketed citations plus a references list into footnotes."""
     ref_match = REFERENCE_SECTION_PATTERN.search(md)
@@ -179,13 +216,13 @@ def convert_to_footnotes(md: str) -> str:
         body = md[: ref_match.start()]
         ref_section = md[ref_match.end() :]
     else:
-        bare_match = HEADINGLESS_REFERENCE_PATTERN.search(md)
-        if not bare_match:
+        bare_start = _find_headingless_reference_start(md)
+        if bare_start is None:
             logger.warning("convert_to_footnotes: no references section found")
             return md
         logger.info("convert_to_footnotes: using headingless reference fallback")
-        body = md[: bare_match.start()]
-        ref_section = md[bare_match.start() :]
+        body = md[:bare_start]
+        ref_section = md[bare_start:]
 
     ref_entries = _parse_ref_entries(ref_section)
     if not ref_entries:
