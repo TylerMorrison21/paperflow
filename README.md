@@ -37,6 +37,17 @@ PyPI package: https://pypi.org/project/paperflow-postprocess/
 GitHub: https://github.com/TylerMorrison21/paperflow  
 Project page: https://www.paperflowing.com
 
+## New: NAS / Unraid Deployment
+
+PaperFlow now has a straightforward NAS deployment path:
+
+- prebuilt image: `ghcr.io/tylermorrison21/paperflow:latest`
+- single-container local Web UI + API
+- Unraid template in `unraid/paperflow.xml`
+- Unraid notes in `docs/unraid.md`
+
+This is meant to make self-hosted use on NAS systems much easier without needing a manual Python setup.
+
 ## Install
 
 ```bash
@@ -66,6 +77,12 @@ The local UI shows a quick decision guide, checks which parsers are actually rea
 ### Option A2: Docker / Unraid
 
 PaperFlow can also run as a single container because the FastAPI backend serves the local Web UI.
+
+What is available now:
+
+- published image: `ghcr.io/tylermorrison21/paperflow:latest`
+- included Unraid template: `unraid/paperflow.xml`
+- persistent job storage via `/data`
 
 Pull the prebuilt image:
 
@@ -98,6 +115,7 @@ http://localhost:8000/
 
 For Unraid, map `/data` to your appdata share, for example `/mnt/user/appdata/paperflow`.
 The repo also includes an Unraid app template at `unraid/paperflow.xml`.
+This means PaperFlow can already be deployed manually on Unraid today.
 
 The stock container is best for:
 
@@ -111,7 +129,7 @@ The heavier local parsers are not bundled in the default image:
 
 Those require a custom image with extra dependencies.
 
-See [docs/unraid.md](docs/unraid.md) for the Unraid-specific notes and Compose example.
+See [docs/unraid.md](docs/unraid.md) for the Unraid-specific setup, Compose example, and recommended Unraid values.
 
 ### Option B: Python package only
 
