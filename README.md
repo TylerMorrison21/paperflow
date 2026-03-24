@@ -63,6 +63,56 @@ http://localhost:8000/
 
 The local UI shows a quick decision guide, checks which parsers are actually ready on your machine, and displays exact setup commands for each parser option.
 
+### Option A2: Docker / Unraid
+
+PaperFlow can also run as a single container because the FastAPI backend serves the local Web UI.
+
+Pull the prebuilt image:
+
+```bash
+docker run --name paperflow \
+  -p 8000:8000 \
+  -e DATA_DIR=/data/jobs \
+  -v $(pwd)/data:/data \
+  --restart unless-stopped \
+  ghcr.io/tylermorrison21/paperflow:latest
+```
+
+Or build locally from this repo:
+
+```bash
+docker build -t paperflow .
+docker run --name paperflow \
+  -p 8000:8000 \
+  -e DATA_DIR=/data/jobs \
+  -v $(pwd)/data:/data \
+  --restart unless-stopped \
+  paperflow
+```
+
+Then open:
+
+```text
+http://localhost:8000/
+```
+
+For Unraid, map `/data` to your appdata share, for example `/mnt/user/appdata/paperflow`.
+The repo also includes an Unraid app template at `unraid/paperflow.xml`.
+
+The stock container is best for:
+
+- `PyMuPDF Local` as the default free local parser
+- `Marker API (Datalab.to)` if you provide your own API key
+
+The heavier local parsers are not bundled in the default image:
+
+- `PaddleOCR-VL-0.9B`
+- `Enterprise Marker Self-Hosted`
+
+Those require a custom image with extra dependencies.
+
+See [docs/unraid.md](docs/unraid.md) for the Unraid-specific notes and Compose example.
+
 ### Option B: Python package only
 
 Use the pip package when you already have raw markdown from another parser and only want PaperFlow's post-processing layer.

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>PaperFlow</Name>
+  <Repository>ghcr.io/tylermorrison21/paperflow:latest</Repository>
+  <Registry>https://ghcr.io</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/TylerMorrison21/paperflow/issues</Support>
+  <Project>https://github.com/TylerMorrison21/paperflow</Project>
+  <Overview>PaperFlow is an open-source PDF-to-Markdown workflow with a local Web UI, API endpoints, persistent job storage, and parser-aware post-processing. This template is optimized for PyMuPDF Local out of the box, with optional Marker API support via your own Datalab API key.</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/TylerMorrison21/paperflow/main/unraid/paperflow.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/TylerMorrison21/paperflow/main/frontend/favicon.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Persistent storage mapped to /data</Requires>
+  <Config Name="Web UI Port" Target="8000" Default="8000" Mode="tcp" Description="PaperFlow web UI and API port" Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+  <Config Name="AppData" Target="/data" Default="/mnt/user/appdata/paperflow" Mode="rw" Description="Persistent PaperFlow data directory" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/paperflow</Config>
+  <Config Name="DATA_DIR" Target="DATA_DIR" Default="/data/jobs" Mode="" Description="Location for persistent job, batch, and usage files inside the container" Type="Variable" Display="always" Required="true" Mask="false">/data/jobs</Config>
+  <Config Name="CORS_ORIGINS" Target="CORS_ORIGINS" Default="*" Mode="" Description="Allowed origins for the built-in UI and API" Type="Variable" Display="advanced" Required="false" Mask="false">*</Config>
+  <Config Name="DATALAB_API_KEY" Target="DATALAB_API_KEY" Default="" Mode="" Description="Optional Datalab key to make Marker API available by default" Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="MARKER_API_URL" Target="MARKER_API_URL" Default="https://www.datalab.to/api/v1/marker" Mode="" Description="Marker API endpoint" Type="Variable" Display="advanced" Required="false" Mask="false">https://www.datalab.to/api/v1/marker</Config>
+  <Config Name="DAILY_SUBMISSION_LIMIT" Target="DAILY_SUBMISSION_LIMIT" Default="300" Mode="" Description="Global daily submission limit" Type="Variable" Display="advanced" Required="false" Mask="false">300</Config>
+  <Config Name="MONTHLY_PAGE_LIMIT" Target="MONTHLY_PAGE_LIMIT" Default="8000" Mode="" Description="Global monthly page limit" Type="Variable" Display="advanced" Required="false" Mask="false">8000</Config>
+  <Config Name="PER_EMAIL_DAILY_LIMIT" Target="PER_EMAIL_DAILY_LIMIT" Default="3" Mode="" Description="Per-email daily submission limit" Type="Variable" Display="advanced" Required="false" Mask="false">3</Config>
+  <Config Name="PER_USER_TRIAL_PAGE_LIMIT" Target="PER_USER_TRIAL_PAGE_LIMIT" Default="100" Mode="" Description="Per-email monthly page trial limit" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="MAX_FILE_SIZE_MB" Target="MAX_FILE_SIZE_MB" Default="15" Mode="" Description="Maximum accepted PDF file size in MB" Type="Variable" Display="advanced" Required="false" Mask="false">15</Config>
+  <Config Name="MAX_PAGES" Target="MAX_PAGES" Default="15" Mode="" Description="Maximum accepted PDF page count" Type="Variable" Display="advanced" Required="false" Mask="false">15</Config>
+</Container>
